@@ -1,0 +1,348 @@
+openapi: 3.0.0
+
+info:
+  description: This is a simple API to track time spent on projects whether it's personal or work-related.
+  version: "1.0.0"
+  title: Simple Time Tracking API (SITT API)
+
+servers:
+  - description: Local Development
+    url: http://localhost:8080/api/v1
+  - description: Production
+    url: https://sitt.william-winkler.com/api/v1
+
+paths:
+  /projects:
+    post:
+      tags:
+        - Projects
+      summary: Create a new project
+      description: Create a new unique project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewProject'
+      responses:
+        '201':
+          description: Created a project successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Bad request, invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags:
+        - Projects
+      summary: Get all projects
+      description: Retrieve a list of all projects
+      responses:
+        '200':
+          description: A list of projects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectList'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_name}:
+    get:
+      tags:
+        - Projects
+      summary: Get project
+      description: Retrieve details of a specific project by its ID
+      parameters:
+        - in: path
+          name: project_name
+          required: true
+          schema:
+            type: string
+          description: The ID of the project to retrieve
+      responses:
+        '200':
+          description: Project details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Projects
+      summary: Update project
+      description: Update details of an existing project
+      parameters:
+        - in: path
+          name: project_name
+          required: true
+          schema:
+            type: string
+          description: The ID of the project to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProject'
+      responses:
+        '200':
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Bad request, invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Projects
+      summary: Delete project
+      description: Delete a specific project by its ID
+      parameters:
+        - in: path
+          name: project_name
+          required: true
+          schema:
+            type: string
+          description: The ID of the project to delete
+      responses:
+        '204':
+          description: Project deleted successfully
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /track/statuses:
+    get:
+      tags:
+        - Track time
+      summary: Get the status of all projects
+      description: Get the status for all projects
+      responses:
+        '200':
+          description: List of project statuses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeTrackingStatusList'
+
+  /track/{project_name}/status:
+    get:
+      tags:
+        - Track time
+      summary: Get time tracking status
+      description: Get the current time tracking status of a specified project
+      parameters:
+        - in: path
+          name: project_name
+          required: true
+          schema:
+            type: string
+          description: The ID of the project to get time tracking status
+      responses:
+        '200':
+          description: Time tracking status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeTrackingStatus'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
+  /track/{project_name}/start:
+    post:
+      tags:
+        - Track time
+      summary: Start time tracking
+      description: Start time tracking on a specified project
+      parameters:
+        - in: path
+          name: project_name
+          required: true
+          schema:
+            type: string
+          description: The ID of the project to start time tracking
+      responses:
+        '200':
+          description: Started time tracking on project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeTrackingStart'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict, project already started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /track/{project_name}/stop:
+    post:
+      tags:
+        - Track time
+      summary: Stop time tracking
+      description: Stop time tracking on a specified project
+      parameters:
+        - in: path
+          name: project_name
+          required: true
+          schema:
+            type: string
+          description: The ID of the project to stop time tracking
+      responses:
+        '200':
+          description: Stopped time tracking on project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeTrackingStop'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict, project not started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
+components:
+  schemas:
+    NewProject:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Name of the new project
+    UpdateProject:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Updated name of the project
+    Project:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the project
+        created_at:
+          type: string
+          format: date-time
+          description: Project creation timestamp
+        modified_at:
+          type: string
+          format: date-time
+          description: Project last update timestamp
+    ProjectList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Project'
+    TimeTrackingStatus:
+      type: object
+      required:
+        - project_name
+        - status
+      properties:
+        project_name:
+          type: string
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+          description: The projects time tracking state
+        started_at:
+          type: string
+          format: date-time
+        duration:
+          type: number
+          format: float
+          description: How long ago since the tracking was started in hours
+    TimeTrackingStatusList:
+      type: array
+      items:
+        $ref: '#/components/schemas/TimeTrackingStatus'
+    TimeTrackingStart:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Project name
+        started_at:
+          type: string
+          format: date-time
+          description: The timestamp the tracking was started
+    TimeTrackingStop:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Project name
+        started_at:
+          type: string
+          format: date-time
+          description: The timestamp the tracking was started
+        stopped_at:
+          type: string
+          format: date-time
+          description: The timestamp the tracking was stopped
+        duration:
+          type: number
+          format: float
+          description: The duration of time tracked in hours
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+      required:
+        - error
