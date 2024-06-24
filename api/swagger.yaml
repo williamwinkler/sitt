@@ -254,6 +254,7 @@ components:
         type: string
         maxLength: 25
         minLength: 1
+        example: "my-project"
 
 
   schemas:
@@ -279,9 +280,7 @@ components:
       type: object
       properties:
         project_name:
-          type: string
-          description: Name of the project
-          default: "my-project"
+          $ref: '#/components/schemas/project_name'
         created_at:
           type: string
           format: date-time
@@ -289,7 +288,7 @@ components:
         modified_at:
           type: string
           format: date-time
-          description: Project last update timestamp
+          description: Project last modifed timestamp
 
     TimeTrackingStatusDto:
       type: object
@@ -298,7 +297,7 @@ components:
         - status
       properties:
         project_name:
-          type: string
+          $ref: '#/components/schemas/project_name'
         status:
           type: string
           enum:
@@ -317,8 +316,7 @@ components:
       type: object
       properties:
         project_name:
-          type: string
-          description: Project name
+          $ref: '#/components/schemas/project_name'
         started_at:
           type: string
           format: date-time
@@ -331,8 +329,7 @@ components:
       type: object
       properties:
         project_name:
-          type: string
-          description: Project name
+          $ref: '#/components/schemas/project_name'
         started_at:
           type: string
           format: date-time
@@ -344,7 +341,7 @@ components:
         duration:
           type: number
           format: float
-          description: The duration of time tracked in hours
+          description: How long ago since the tracking was started in hours
       required:
         - project_name
         - started_at
@@ -374,13 +371,11 @@ components:
       content:
         application/json:
           schema:
-            allOf:
-              - $ref: '#/components/schemas/ErrorResponse'
-              - type: object
-                properties:
-                  error:
-                    type: string
-                    default: "Project not found"
+            type: object
+            properties:
+              error:
+                type: string
+                default: "Project not found"
 
     ProjectNameAlreadyExists:
       description: Project name already exists
