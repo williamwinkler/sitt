@@ -23,20 +23,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NewProject'
+              $ref: '#/components/schemas/NewProjectDto'
       responses:
         '201':
           description: Created a project successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Project'
-        '400':
-          description: Bad request, invalid input
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/ProjectDto'
+        '409':
+          $ref: '#/components/responses/ProjectNameAlreadyExists'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
     get:
       tags:
         - Projects
@@ -48,98 +48,78 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProjectList'
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectDto'
         '500':
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/InternalServerError'
 
   /projects/{project_name}:
     get:
       tags:
         - Projects
       summary: Get project
-      description: Retrieve details of a specific project by its ID
+      description: Retrieve details of a specific project by its name
       parameters:
-        - in: path
-          name: project_name
-          required: true
-          schema:
-            type: string
-          description: The ID of the project to retrieve
+        - $ref: '#/components/parameters/ProjectNameParam'
       responses:
         '200':
           description: Project details
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Project'
+                $ref: '#/components/schemas/ProjectDto'
         '404':
-          description: Project not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ProjectNotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
     put:
       tags:
         - Projects
       summary: Update project
       description: Update details of an existing project
       parameters:
-        - in: path
-          name: project_name
-          required: true
-          schema:
-            type: string
-          description: The ID of the project to update
+        - $ref: '#/components/parameters/ProjectNameParam'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateProject'
+              $ref: '#/components/schemas/UpdateProjectDto'
       responses:
         '200':
           description: Project updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Project'
-        '400':
-          description: Bad request, invalid input
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Project not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/ProjectDto'
+        '409':
+          $ref: '#/components/responses/ProjectNameAlreadyExists'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
     delete:
       tags:
         - Projects
       summary: Delete project
-      description: Delete a specific project by its ID
+      description: Delete a specific project by its name
       parameters:
-        - in: path
-          name: project_name
-          required: true
-          schema:
-            type: string
-          description: The ID of the project to delete
+        - $ref: '#/components/parameters/ProjectNameParam'
       responses:
         '204':
           description: Project deleted successfully
         '404':
-          description: Project not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ProjectNotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /track/statuses:
     get:
       tags:
@@ -152,13 +132,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TimeTrackingStatusList'
+                type: array
+                items:
+                  $ref: '#/components/schemas/TimeTrackingStatusDto'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /track/{project_name}/status:
     get:
       tags:
         - Track time
-      summary: Get time tracking status
+      summary: Get time tracking status for project
       description: Get the current time tracking status of a specified project
       parameters:
         - in: path
@@ -173,20 +157,20 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TimeTrackingStatus'
+                $ref: '#/components/schemas/TimeTrackingStatusDto'
         '404':
-          description: Project not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/ProjectNotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
 
   /track/{project_name}/start:
     post:
       tags:
         - Track time
-      summary: Start time tracking
+      summary: Start time tracking on project
       description: Start time tracking on a specified project
       parameters:
         - in: path
@@ -201,25 +185,29 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TimeTrackingStart'
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/TimeTrackingStartDto'
+        '404':
+          $ref: '#/components/responses/ProjectNotFound'
         '409':
-          description: Conflict, project already started
+          description: The project is currently being time tracked
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                type: object
+                properties:
+                  error:
+                    type: string
+                    default: "The project is currently being time tracked"
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /track/{project_name}/stop:
     post:
       tags:
         - Track time
-      summary: Stop time tracking
+      summary: Stop time tracking on project
       description: Stop time tracking on a specified project
       parameters:
         - in: path
@@ -234,45 +222,66 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TimeTrackingStop'
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/TimeTrackingStopDto'
+        '404':
+          $ref: '#/components/responses/ProjectNotFound'
         '409':
-          description: Conflict, project not started
+          description: The project is not currently being time tracked
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                type: object
+                properties:
+                  error:
+                    type: string
+                    default: "The project is not currently being time tracked"
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
 
 components:
+
+  parameters:
+
+    ProjectNameParam:
+      name: project_name
+      in: path
+      description: The name of the project
+      required: true
+      schema:
+        type: string
+        maxLength: 25
+        minLength: 1
+
+
   schemas:
-    NewProject:
+
+    NewProjectDto:
       type: object
       required:
-        - name
+        - project_name
       properties:
-        name:
-          type: string
-          description: Name of the new project
-    UpdateProject:
+        project_name:
+          $ref: '#/components/schemas/project_name'
+
+    UpdateProjectDto:
       type: object
       required:
-        - name
+        - project_name
       properties:
-        name:
-          type: string
-          description: Updated name of the project
-    Project:
+        project_name:
+          $ref: '#/components/schemas/project_name'
+          description: Updated project name
+
+    ProjectDto:
       type: object
       properties:
-        name:
+        project_name:
           type: string
           description: Name of the project
+          default: "my-project"
         created_at:
           type: string
           format: date-time
@@ -281,11 +290,8 @@ components:
           type: string
           format: date-time
           description: Project last update timestamp
-    ProjectList:
-      type: array
-      items:
-        $ref: '#/components/schemas/Project'
-    TimeTrackingStatus:
+
+    TimeTrackingStatusDto:
       type: object
       required:
         - project_name
@@ -306,24 +312,25 @@ components:
           type: number
           format: float
           description: How long ago since the tracking was started in hours
-    TimeTrackingStatusList:
-      type: array
-      items:
-        $ref: '#/components/schemas/TimeTrackingStatus'
-    TimeTrackingStart:
+
+    TimeTrackingStartDto:
       type: object
       properties:
-        name:
+        project_name:
           type: string
           description: Project name
         started_at:
           type: string
           format: date-time
           description: The timestamp the tracking was started
-    TimeTrackingStop:
+      required:
+        - project_name
+        - started_at
+
+    TimeTrackingStopDto:
       type: object
       properties:
-        name:
+        project_name:
           type: string
           description: Project name
         started_at:
@@ -338,6 +345,12 @@ components:
           type: number
           format: float
           description: The duration of time tracked in hours
+      required:
+        - project_name
+        - started_at
+        - stopped_at
+        - duration
+
     ErrorResponse:
       type: object
       properties:
@@ -346,3 +359,58 @@ components:
           description: Error message
       required:
         - error
+
+    project_name:
+      type: string
+      description: Name of the project
+      minLength: 1
+      maxLength: 25
+      example: my-project
+
+  responses:
+
+    ProjectNotFound:
+      description: Project not found
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  error:
+                    type: string
+                    default: "Project not found"
+
+    ProjectNameAlreadyExists:
+      description: Project name already exists
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                default: "There is already a project with the same name"
+
+    UnprocessableEntity:
+      description: The request was not able to be processed due to invalid input
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                default: "The request was unable to be processed due to invalid input"
+
+    InternalServerError:
+      description: Something went wrong
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                default: "Internal server error"
