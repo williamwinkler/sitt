@@ -35,7 +35,7 @@ impl ProjectService {
         }
     }
 
-    pub async fn get_all(&self, created_by: String) -> Result<Vec<Project>, String> {
+    pub async fn get_all(&self, created_by: &str) -> Result<Vec<Project>, String> {
         self.repository
             .get_all(USER)
             .await
@@ -53,6 +53,14 @@ impl ProjectService {
             })
             .map_err(|e| e.to_string())
     }
+
+    pub async fn get(&self, project_id: &str, created_by: &str) -> Result<Project, String> {
+        return self.repository.get(project_id, created_by).await;
+    }
+
+    pub async fn delete(&self, project_id: &str, created_by: &str) -> Result<(), String> {
+        return self.repository.delete(project_id, created_by).await;
+    }
 }
 
 // pub async fn update_project(
@@ -66,9 +74,4 @@ impl ProjectService {
 //         created_at: "2021-01-01T00:00:00Z".into(),
 //         modified_at: "2021-01-01T00:00:00Z".into(),
 //     })
-// }
-
-// pub async fn delete_project(project_name: &str) -> Result<(), String> {
-//     // Implement logic to delete a project from the database
-//     Ok(())
 // }

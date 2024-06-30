@@ -82,6 +82,29 @@ impl ProjectRepository {
         }
     }
 
+    pub async fn get(&self, project_id: &str, created_by: &str) -> Result<Project, String> {
+        let result = self
+            .db
+            .client
+            .get_item()
+            .table_name(TABLE_NAME)
+            .key("created_by", AttributeValue::S(created_by.to_string()))
+            .key("id", AttributeValue::S(project_id.to_string()))
+            .send()
+            .await;
+
+        match result {
+            Ok(output) => match output.item {
+                Some(item) => Ok(Project::from(&item)),
+                None => Err("Nothing found".to_string()),
+            },
+            Err(err) => {
+                println!("{:#?}", err);
+                Err(err.to_string())
+            }
+        }
+    }
+
     pub async fn get_all(&self, created_by: &str) -> Result<Vec<Project>, String> {
         let results = self
             .db
@@ -102,6 +125,26 @@ impl ProjectRepository {
             Ok(projects)
         } else {
             Err(format!("An error occurred querying projects"))
+        }
+    }
+
+    pub async fn delete(&self, project_id: &str, created_by: &str) -> Result<(), String> {
+        let result = self
+            .db
+            .client
+            .delete_item()
+            .table_name(TABLE_NAME)
+            .key("created_by", AttributeValue::S(created_by.to_string()))
+            .key("id", AttributeValue::S(project_id.to_string()))
+            .send()
+            .await;
+
+        match result {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                println!("{:#?}", err);
+                Err(err.to_string())
+            }
         }
     }
 
