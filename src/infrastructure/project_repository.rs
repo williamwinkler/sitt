@@ -1,12 +1,9 @@
-use crate::models::project_model::{Active, EProject, Inactive, Project};
+use crate::models::project_model::Project;
 
 use super::database::Database;
 use aws_sdk_dynamodb::types::{
-    AttributeDefinition,
-    AttributeValue::{self, N, S},
-    KeySchemaElement, KeyType, ScalarAttributeType,
+    AttributeDefinition, AttributeValue, KeySchemaElement, KeyType, ScalarAttributeType,
 };
-use serde_dynamo::to_item;
 use std::{collections::HashMap, sync::Arc};
 
 #[derive(Debug)]
@@ -63,139 +60,200 @@ impl ProjectRepository {
         Self { db }
     }
 
-    pub async fn insert(&self, project: &Project<Inactive>) -> Result<(), String> {
-        // Convert project to a HashMap<String, AttributeValue> using serde_dynamo
-        let project_item: HashMap<String, AttributeValue> =
-            to_item(project).expect("Failed to serialize project");
+    pub async fn insert(&self, project: Project) -> Result<Project, String> {
+        let item = ProjectRepository::convert_project_to_item(&project);
 
         let result = self
             .db
             .client
             .put_item()
             .table_name(TABLE_NAME)
-            .set_item(Some(project_item))
+            .set_item(Some(item))
             .send()
             .await;
 
-        if result.is_err() {
-            println!("An error occured inserting project");
-            return Err(format!("{:#?}", result.err()));
+        match result {
+            Ok(_) => Ok(project),
+            Err(err) => {
+                println!("An error occurred inserting project");
+                println!("{:#?}", err);
+                Err("An error occurred inserting project".to_string())
+            }
         }
-
-        Ok(())
     }
 
-    pub async fn get_all(&self, created_by: &str) -> Result<Vec<EProject>, String> {
-        let query = self
+    pub async fn get_all(&self, created_by: String) -> Result<Vec<Project>, String> {
+        let results = self
             .db
             .client
             .query()
             .table_name(TABLE_NAME)
             .key_condition_expression("created_by = :created_by")
-            .expression_attribute_values(":created_by", AttributeValue::S(created_by.to_string()))
+            .expression_attribute_values(":created_by", AttributeValue::S(created_by))
             .send()
-            .await;
+            .await
+            .expect("Failed to retrieve projects");
 
-        match query {
-            Ok(result) => {
-                if let Some(items) = result.items {
-                    let projects: Vec<EProject> = items
-                        .iter()
-                        .filter_map(|item| {
-                            let status = item.get("status")?.as_s().ok()?;
-                            println!("{}", status);
-                            match status.as_str() {
-                                "ACTIVE" => {
-                                    let project =
-                                        ProjectRepository::convert_to_project(item, Active)?;
-                                    Some(EProject::from(project))
-                                }
-                                "INACTIVE" => {
-                                    let project =
-                                        ProjectRepository::convert_to_project(item, Inactive)
-                                            .expect("Failed to convert to project");
-
-                                    println!("{}", project.name);
-                                    Some(EProject::from(project))
-                                }
-                                _ => None,
-                            }
-                        })
-                        .collect();
-                    Ok(projects)
-                } else {
-                    Err("No projects found".to_string())
-                }
-            }
-            Err(err) => {
-                println!(
-                    "Error occurred while querying projects for '{}': {:#?}",
-                    created_by, err
-                );
-                Err("Error occurred while querying projects".to_string())
-            }
+        if let Some(items) = results.items {
+            let projects: Vec<Project> = items.iter().map(|v: &HashMap<String, AttributeValue>| v.into()).collect();
+            Ok(projects)
+        } else {
+            Err(format!("An error occurred querying projects"))
         }
     }
 
-    fn get_status_as_str(&self, project: EProject) -> String {
-        match project {
-            EProject::Active(_) => String::from("ACTIVE"),
-            EProject::Inactive(_) => String::from("INACTIVE"),
+    fn convert_project_to_item(project: &Project) -> HashMap<String, AttributeValue> {
+        let mut item = HashMap::new();
+
+        item.insert("id".to_string(), AttributeValue::S(project.id.to_string()));
+        item.insert(
+            "name".to_string(),
+            AttributeValue::S(project.name.to_string()),
+        );
+        item.insert(
+            "status".to_string(),
+            AttributeValue::S(project.status.to_string()),
+        );
+        item.insert(
+            "total_in_seconds".to_string(),
+            AttributeValue::N(project.total_in_seconds.to_string()),
+        );
+        item.insert(
+            "created_at".to_string(),
+            AttributeValue::S(project.created_at.to_string()),
+        );
+        item.insert(
+            "created_by".to_string(),
+            AttributeValue::S(project.created_by.to_string()),
+        );
+
+        if let Some(modified_at) = project.modified_at.clone() {
+            item.insert(
+                "modified_at".to_string(),
+                AttributeValue::S(modified_at.to_string()),
+            );
         }
-    }
 
-    
+        if let Some(modified_by) = project.modified_by.clone() {
+            item.insert(
+                "modified_by".to_string(),
+                AttributeValue::S(modified_by.to_string()),
+            );
+        }
 
-    fn convert_to_project<Status>(
-        item: &HashMap<String, AttributeValue>,
-        status: Status,
-    ) -> Option<Project<Status>> {
-        Some(Project {
-            id: item
-                .get("id")
-                .expect("id missing")
-                .as_s()
-                .expect("id not a string")
-                .to_string(),
-            name: item
-                .get("name")
-                .expect("name missing")
-                .as_s()
-                .expect("name not a string")
-                .to_string(),
-            status,
-            total_in_seconds: item
-                .get("total_in_seconds")
-                .expect("total_in_seconds missing")
-                .as_n()
-                .expect("total_in_seconds not a number")
-                .parse()
-                .expect("failed to parse total_in_seconds"),
-            created_at: item
-                .get("created_at")
-                .expect("created_at missing")
-                .as_s()
-                .expect("created_at not a string")
-                .parse()
-                .expect("failed to parse created_at"),
-            created_by: item
-                .get("created_by")
-                .expect("created_by missing")
-                .as_s()
-                .expect("created_by not a string")
-                .to_string(),
-            modified_by: item
-                .get("modified_by")
-                .map(|attr| attr.as_s().expect("modified_by not a string").to_string()),
-            modified_at: item.get("modified_at").map(|attr| {
-                attr.as_s()
-                    .expect("modified_at not a string")
-                    .parse()
-                    .expect("failed to parse modified_at")
-            }),
-        })
+        item
     }
 }
+
+//     pub async fn get_all(&self, created_by: &str) -> Result<Vec<EProject>, String> {
+//         let query = self
+//             .db
+//             .client
+//             .query()
+//             .table_name(TABLE_NAME)
+//             .key_condition_expression("created_by = :created_by")
+//             .expression_attribute_values(":created_by", AttributeValue::S(created_by.to_string()))
+//             .send()
+//             .await;
+
+//         match query {
+//             Ok(result) => {
+//                 if let Some(items) = result.items {
+//                     let projects: Vec<EProject> = items
+//                         .iter()
+//                         .filter_map(|item| {
+//                             let status = item.get("status")?.as_s().ok()?;
+//                             println!("{}", status);
+//                             match status.as_str() {
+//                                 "ACTIVE" => {
+//                                     let project =
+//                                         ProjectRepository::convert_to_project(item, Active)?;
+//                                     Some(EProject::from(project))
+//                                 }
+//                                 "INACTIVE" => {
+//                                     let project =
+//                                         ProjectRepository::convert_to_project(item, Inactive)
+//                                             .expect("Failed to convert to project");
+
+//                                     println!("{}", project.name);
+//                                     Some(EProject::from(project))
+//                                 }
+//                                 _ => None,
+//                             }
+//                         })
+//                         .collect();
+//                     Ok(projects)
+//                 } else {
+//                     Err("No projects found".to_string())
+//                 }
+//             }
+//             Err(err) => {
+//                 println!(
+//                     "Error occurred while querying projects for '{}': {:#?}",
+//                     created_by, err
+//                 );
+//                 Err("Error occurred while querying projects".to_string())
+//             }
+//         }
+//     }
+
+//     fn get_status_as_str(&self, project: EProject) -> String {
+//         match project {
+//             EProject::Active(_) => String::from("ACTIVE"),
+//             EProject::Inactive(_) => String::from("INACTIVE"),
+//         }
+//     }
+
+//     fn convert_to_project<Status>(
+//         item: &HashMap<String, AttributeValue>,
+//         status: Status,
+//     ) -> Option<Project<Status>> {
+//         Some(Project {
+//             id: item
+//                 .get("id")
+//                 .expect("id missing")
+//                 .as_s()
+//                 .expect("id not a string")
+//                 .to_string(),
+//             name: item
+//                 .get("name")
+//                 .expect("name missing")
+//                 .as_s()
+//                 .expect("name not a string")
+//                 .to_string(),
+//             status,
+//             total_in_seconds: item
+//                 .get("total_in_seconds")
+//                 .expect("total_in_seconds missing")
+//                 .as_n()
+//                 .expect("total_in_seconds not a number")
+//                 .parse()
+//                 .expect("failed to parse total_in_seconds"),
+//             created_at: item
+//                 .get("created_at")
+//                 .expect("created_at missing")
+//                 .as_s()
+//                 .expect("created_at not a string")
+//                 .parse()
+//                 .expect("failed to parse created_at"),
+//             created_by: item
+//                 .get("created_by")
+//                 .expect("created_by missing")
+//                 .as_s()
+//                 .expect("created_by not a string")
+//                 .to_string(),
+//             modified_by: item
+//                 .get("modified_by")
+//                 .map(|attr| attr.as_s().expect("modified_by not a string").to_string()),
+//             modified_at: item.get("modified_at").map(|attr| {
+//                 attr.as_s()
+//                     .expect("modified_at not a string")
+//                     .parse()
+//                     .expect("failed to parse modified_at")
+//             }),
+//         })
+//     }
+// }
 
 // let status = self.get_status_as_str(EProject::from(project));
 // let total_in_seconds = project.total_in_seconds.clone().to_string();

@@ -6,11 +6,11 @@ use rocket::{get, http::Status, post, response::status, serde::json::Json, State
 pub async fn create(
     new_project: Json<NewProjectDto>,
     project_service: &State<ProjectService>,
-) -> Result<Json<ProjectDto>, status::Custom<Json<String>>> {
+) -> Result<status::Created<Json<ProjectDto>>, status::Custom<Json<String>>> {
     let project_name = &new_project.name;
 
     match project_service.create(project_name).await {
-        Ok(project) => Ok(Json(ProjectDto::from(project))),
+        Ok(project) => Ok(status::Created::new("/projects").body(Json(ProjectDto::from(project)))),
         Err(err) => Err(status::Custom(Status::InternalServerError, Json(err))),
     }
 }

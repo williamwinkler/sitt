@@ -1,4 +1,3 @@
-use rocket::Rocket;
 use std::sync::Arc;
 
 mod handlers;

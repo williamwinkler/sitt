@@ -1,4 +1,4 @@
-use rocket::{Route, routes};
+use rocket::{routes, Route};
 
 use crate::handlers::project_handler::{create, get_all};
 

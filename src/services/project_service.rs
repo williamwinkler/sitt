@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    infrastructure::project_repository::ProjectRepository,
-    models::project_model::{Active, EProject, Inactive, Project},
+    infrastructure::project_repository::ProjectRepository, models::project_model::Project,
 };
 
 #[derive(Debug)]
@@ -15,17 +14,17 @@ impl ProjectService {
         ProjectService { repository }
     }
 
-    pub async fn create(&self, project_name: &str) -> Result<Project<Inactive>, String> {
-        let project = Project::new(project_name);
-        let result = self.repository.insert(&project).await;
+    pub async fn create(&self, project_name: &str) -> Result<Project, String> {
+        let project = Project::new(project_name, "admin");
+        let result = self.repository.insert(project).await;
         match result {
-            Ok(_) => Ok(project),
+            Ok(project) => Ok(project),
             Err(msg) => Err(msg),
         }
     }
 
-    pub async fn get_all(&self) -> Result<Vec<EProject>, String> {
-        return self.repository.get_all("admin").await;
+    pub async fn get_all(&self) -> Result<Vec<Project>, String> {
+        return self.repository.get_all("admin".to_string()).await;
     }
 }
 

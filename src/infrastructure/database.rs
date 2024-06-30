@@ -1,4 +1,4 @@
-use aws_config::{self, SdkConfig};
+use aws_config;
 use aws_sdk_dynamodb::Client;
 
 #[derive(Debug)]
@@ -11,8 +11,6 @@ impl Database {
         let config = aws_config::load_from_env().await;
         let client = Client::new(&config);
 
-        Database {
-            client: client,
-        }
+        Database { client: client }
     }
 }
