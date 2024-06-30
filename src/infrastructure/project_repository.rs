@@ -82,20 +82,23 @@ impl ProjectRepository {
         }
     }
 
-    pub async fn get_all(&self, created_by: String) -> Result<Vec<Project>, String> {
+    pub async fn get_all(&self, created_by: &str) -> Result<Vec<Project>, String> {
         let results = self
             .db
             .client
             .query()
             .table_name(TABLE_NAME)
             .key_condition_expression("created_by = :created_by")
-            .expression_attribute_values(":created_by", AttributeValue::S(created_by))
+            .expression_attribute_values(":created_by", AttributeValue::S(created_by.to_string()))
             .send()
             .await
             .expect("Failed to retrieve projects");
 
         if let Some(items) = results.items {
-            let projects: Vec<Project> = items.iter().map(|v: &HashMap<String, AttributeValue>| v.into()).collect();
+            let projects: Vec<Project> = items
+                .iter()
+                .map(|v: &HashMap<String, AttributeValue>| v.into())
+                .collect();
             Ok(projects)
         } else {
             Err(format!("An error occurred querying projects"))

@@ -20,7 +20,7 @@ pub async fn get_all(
     project_service: &State<ProjectService>,
 ) -> Result<Json<Vec<ProjectDto>>, Status> {
     project_service
-        .get_all()
+        .get_all("admin".to_string())
         .await
         .map(|projects| {
             let project_dtos: Vec<ProjectDto> =
