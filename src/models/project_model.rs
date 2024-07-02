@@ -1,8 +1,6 @@
-use aws_sdk_dynamodb::types::AttributeValue;
 use chrono::{self, DateTime, Utc};
 use core::fmt;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,7 +19,7 @@ impl fmt::Display for ProjectStatus {
 }
 
 impl ProjectStatus {
-    fn from_str(s: &str) -> Option<Self> {
+    pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "ACTIVE" => Some(ProjectStatus::ACTIVE),
             "INACTIVE" => Some(ProjectStatus::INACTIVE),
@@ -53,58 +51,6 @@ impl Project {
             created_by: created_by.to_string(),
             modified_at: None,
             modified_by: None,
-        }
-    }
-}
-
-impl From<&HashMap<String, AttributeValue>> for Project {
-    fn from(map: &HashMap<String, AttributeValue>) -> Self {
-        let id = map
-            .get("id")
-            .and_then(|v| v.as_s().ok())
-            .unwrap()
-            .to_string();
-        let name = map
-            .get("name")
-            .and_then(|v| v.as_s().ok())
-            .unwrap()
-            .to_string();
-        let status_str = map.get("status").and_then(|v| v.as_s().ok()).unwrap();
-        let status = ProjectStatus::from_str(&status_str).unwrap_or(ProjectStatus::INACTIVE);
-        let total_in_seconds = map
-            .get("total_in_seconds")
-            .and_then(|v| v.as_n().ok())
-            .unwrap()
-            .parse()
-            .unwrap_or(0);
-        let created_at = map
-            .get("created_at")
-            .and_then(|v| v.as_s().ok())
-            .and_then(|s| s.parse::<DateTime<Utc>>().ok())
-            .expect("Couldnt parse created_at");
-        let created_by = map
-            .get("created_by")
-            .and_then(|v| v.as_s().ok())
-            .unwrap()
-            .to_string();
-        let modified_at = map
-            .get("modified_at")
-            .and_then(|v| v.as_s().ok())
-            .and_then(|s| s.parse::<DateTime<Utc>>().ok());
-        let modified_by = map
-            .get("modified_by")
-            .and_then(|v| v.as_s().ok())
-            .map(|s| s.to_string());
-
-        Project {
-            id,
-            name,
-            status,
-            total_in_seconds,
-            created_at,
-            created_by,
-            modified_at,
-            modified_by,
         }
     }
 }
