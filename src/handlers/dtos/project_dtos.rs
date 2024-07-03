@@ -1,14 +1,16 @@
 use crate::models::project_model::{Project, ProjectStatus};
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use rocket::serde::{Deserialize, Serialize};
+use validator::Validate;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Validate)]
+#[serde(crate = "rocket::serde")]
 pub struct NewProjectDto {
-    pub name: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UpdateProjectDto {
+    #[validate(length(
+        min = 1,
+        max = 25,
+        message = "must be between 1 and 25 characters long"
+    ))]
     pub name: String,
 }
 
@@ -24,14 +26,14 @@ pub struct ProjectDto {
 }
 
 impl From<Project> for ProjectDto {
-    fn from(project: Project) -> Self {
+    fn from(p: Project) -> Self {
         ProjectDto {
-            project_id: project.id,
-            name: project.name,
-            status: project.status,
-            total_in_seconds: project.total_in_seconds,
-            created_at: project.created_at,
-            modified_at: project.modified_at,
+            project_id: p.id,
+            name: p.name,
+            status: p.status,
+            total_in_seconds: p.total_in_seconds,
+            created_at: p.created_at,
+            modified_at: p.modified_at,
         }
     }
 }

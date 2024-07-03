@@ -35,7 +35,7 @@ impl ProjectService {
                 println!("{msg}");
                 return Err(ProjectError::UnknownError);
             }
-            Err(DbErrors::UnknownError(_)) => return Err(ProjectError::UnknownError),
+            Err(DbErrors::UnknownError) => return Err(ProjectError::UnknownError),
         };
 
         // Each user can maximum have 15 projects
@@ -76,7 +76,7 @@ impl ProjectService {
                     println!("{msg}");
                     Err(ProjectError::UnknownError)
                 }
-                DbErrors::UnknownError(_) => Err(ProjectError::UnknownError),
+                DbErrors::UnknownError => Err(ProjectError::UnknownError),
             },
         }
     }
@@ -91,7 +91,7 @@ impl ProjectService {
                 println!("{msg}");
                 Err(ProjectError::UnknownError)
             }
-            Err(DbErrors::UnknownError(_)) => Err(ProjectError::UnknownError),
+            Err(DbErrors::UnknownError) => Err(ProjectError::UnknownError),
         }
     }
 

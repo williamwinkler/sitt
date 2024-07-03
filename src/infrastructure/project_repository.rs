@@ -9,8 +9,8 @@ use std::{collections::HashMap, sync::Arc};
 
 pub enum DbErrors {
     NotFound,
-    UnknownError(String),
     FailedConvertion(String),
+    UnknownError,
 }
 
 #[derive(Debug)]
@@ -49,7 +49,8 @@ impl ProjectRepository {
             .expect("Error building the key schema partion");
 
         // Create the table name
-        let _ = db.client
+        let _ = db
+            .client
             .create_table()
             .table_name(TABLE_NAME)
             .billing_mode(aws_sdk_dynamodb::types::BillingMode::PayPerRequest)
@@ -110,7 +111,7 @@ impl ProjectRepository {
             },
             Err(err) => {
                 println!("{:#?}", err);
-                Err(DbErrors::UnknownError(err.to_string()))
+                Err(DbErrors::UnknownError)
             }
         }
     }
@@ -145,7 +146,7 @@ impl ProjectRepository {
             },
             Err(err) => {
                 println!("{:#?}", err);
-                Err(DbErrors::UnknownError(err.to_string()))
+                Err(DbErrors::UnknownError)
             }
         }
     }
@@ -169,7 +170,7 @@ impl ProjectRepository {
             },
             Err(err) => {
                 println!("{:#?}", err);
-                Err(DbErrors::UnknownError(err.to_string()))
+                Err(DbErrors::UnknownError)
             }
         }
     }

@@ -1,29 +1,36 @@
 use crate::handlers::dtos::project_dtos::{NewProjectDto, ProjectDto};
 use crate::services::project_service::{ProjectError, ProjectService};
-use rocket::delete;
+use crate::User;
 use rocket::serde::json::Json;
-use rocket::{get, http::Status, post, response::status, State};
+use rocket::{delete, get, http::Status, post, response::status, State};
+use validator::Validate;
 
 use super::dtos::common_dtos::ErrorResponse;
-
-static USER: &str = "admin";
 
 #[post("/projects", format = "application/json", data = "<new_project>")]
 pub async fn create(
     project_service: &State<ProjectService>,
+    user: &State<User>,
     new_project: Json<NewProjectDto>,
 ) -> Result<status::Created<Json<ProjectDto>>, status::Custom<Json<ErrorResponse>>> {
+    let new_project = new_project.into_inner();
+
+    // Validate the DTO
+    // TODO: use Rocket Guards instead
+    if let Err(validation_err) = new_project.validate() {
+        return Err(ErrorResponse::validation_error(validation_err));
+    }
+
     let project_name = &new_project.name;
-    let created_by = USER;
+    let created_by = &user.name;
+
     match project_service.create(project_name, created_by).await {
         Ok(project) => Ok(status::Created::new("/projects").body(Json(ProjectDto::from(project)))),
         Err(err) => match err {
-            ProjectError::ProjectExistsWithSameName => Err(status::Custom(
+            ProjectError::ProjectExistsWithSameName => Err(ErrorResponse::custom(
                 Status::BadRequest,
-                Json(ErrorResponse {
-                    error: format!("A project already exists with name: {project_name}")
-                        .to_string(),
-                }),
+                &format!("A project already exists with name: {project_name}"),
+                None,
             )),
             _ => Err(ErrorResponse::internal_server_error()),
         },
@@ -33,8 +40,11 @@ pub async fn create(
 #[get("/projects")]
 pub async fn get_all(
     project_service: &State<ProjectService>,
+    user: &State<User>,
 ) -> Result<Json<Vec<ProjectDto>>, status::Custom<Json<ErrorResponse>>> {
-    match project_service.get_all("admin").await {
+    let created_by = &user.name;
+
+    match project_service.get_all(created_by).await {
         Ok(projects) => {
             let project_dtos = projects.into_iter().map(ProjectDto::from).collect();
             Ok(Json(project_dtos))
@@ -48,14 +58,18 @@ pub async fn get_all(
 #[get("/projects/<project_id>")]
 pub async fn get(
     project_service: &State<ProjectService>,
+    user: &State<User>,
     project_id: &str,
 ) -> Result<Json<ProjectDto>, status::Custom<Json<ErrorResponse>>> {
-    match project_service.get(project_id, "admin").await {
+    let created_by = &user.name;
+
+    match project_service.get(project_id, created_by).await {
         Ok(project) => Ok(Json(ProjectDto::from(project))),
         Err(err) => match err {
             ProjectError::NotFound => Err(ErrorResponse::custom(
                 Status::NotFound,
-                format!("No project found with id: {project_id}").as_str(),
+                &format!("No project found with id: {project_id}"),
+                None,
             )),
             _ => Err(ErrorResponse::internal_server_error()),
         },
@@ -65,22 +79,23 @@ pub async fn get(
 #[delete("/projects/<project_id>")]
 pub async fn delete(
     project_service: &State<ProjectService>,
+    user: &State<User>,
     project_id: &str,
 ) -> Result<status::NoContent, status::Custom<Json<ErrorResponse>>> {
-    match project_service.delete(project_id, "admin").await {
+    let created_by = &user.name;
+
+    match project_service.delete(project_id, created_by).await {
         Ok(_) => Ok(status::NoContent),
         Err(err) => match err {
-            ProjectError::NotFound => Err(status::Custom(
+            ProjectError::NotFound => Err(ErrorResponse::custom(
                 Status::NotFound,
-                Json(ErrorResponse {
-                    error: format!("No project found with id: {project_id}").to_string(),
-                }),
+                &format!("No project found with id: {project_id}"),
+                None,
             )),
-            _ => Err(status::Custom(
+            _ => Err(ErrorResponse::custom(
                 Status::InternalServerError,
-                Json(ErrorResponse {
-                    error: "An unknown error occurred".to_string(),
-                }),
+                "An unknown error occurred",
+                None,
             )),
         },
     }
