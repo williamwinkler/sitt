@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, sync::Arc};
 
 use crate::{
-    infrastructure::project_repository::{DbErrors, ProjectRepository},
+    infrastructure::{project_repository::ProjectRepository, DbErrors},
     models::project_model::{Project, ProjectStatus},
 };
 

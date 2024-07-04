@@ -1,17 +1,12 @@
 use crate::models::project_model::{Project, ProjectStatus};
 use chrono::{DateTime, Utc};
 
-use super::database::Database;
+use super::{database::Database, DbErrors};
 use aws_sdk_dynamodb::types::{
     AttributeDefinition, AttributeValue, KeySchemaElement, KeyType, ScalarAttributeType,
 };
 use std::{collections::HashMap, sync::Arc};
 
-pub enum DbErrors {
-    NotFound,
-    FailedConvertion(String),
-    UnknownError,
-}
 
 #[derive(Debug)]
 pub struct ProjectRepository {
@@ -61,7 +56,7 @@ impl ProjectRepository {
             .send()
             .await;
 
-        // TODO: handle create table resulst
+        // TODO: handle create table result
 
         Self { db }
     }
@@ -83,7 +78,7 @@ impl ProjectRepository {
             Err(err) => {
                 println!("An error occurred inserting project");
                 println!("{:#?}", err);
-                Err(DbErrors::NotFound)
+                Err(DbErrors::UnknownError)
             }
         }
     }

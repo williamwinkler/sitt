@@ -7,13 +7,15 @@ mod routes;
 mod services;
 
 struct User {
-    name: String
+    name: String,
 }
 
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
     // The user will always be 'admin' for now. Later I might add support for more.
-    let created_by = User { name: "admin".to_string() };
+    let created_by = User {
+        name: String::from("admin"),
+    };
 
     // Infrastructure
     let database = Arc::new(infrastructure::database::Database::new().await);
@@ -22,7 +24,6 @@ async fn main() -> Result<(), rocket::Error> {
 
     // Services
     let project_service = services::project_service::ProjectService::new(project_respository);
-
 
     let _rocket = rocket::build()
         .manage(created_by)
