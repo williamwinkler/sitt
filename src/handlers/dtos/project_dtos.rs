@@ -19,7 +19,7 @@ pub struct ProjectDto {
     pub project_id: String,
     pub name: String,
     pub status: ProjectStatus,
-    pub total_in_seconds: i32,
+    pub total_in_seconds: i64,
     pub created_at: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modified_at: Option<DateTime<Utc>>,

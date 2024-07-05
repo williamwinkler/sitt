@@ -3,7 +3,7 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ProjectStatus {
     ACTIVE,
     INACTIVE,
@@ -33,7 +33,7 @@ pub struct Project {
     pub id: String,
     pub name: String,
     pub status: ProjectStatus,
-    pub total_in_seconds: i32,
+    pub total_in_seconds: i64,
     pub created_at: DateTime<Utc>,
     pub created_by: String,
     pub modified_at: Option<DateTime<Utc>>,

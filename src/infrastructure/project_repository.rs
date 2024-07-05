@@ -212,40 +212,40 @@ impl ProjectRepository {
         item
     }
 
-    fn convert_item_to_project(map: &HashMap<String, AttributeValue>) -> Option<Project> {
-        let id = map
+    fn convert_item_to_project(item: &HashMap<String, AttributeValue>) -> Option<Project> {
+        let id = item
             .get("id")
             .and_then(|v| v.as_s().ok())
             .unwrap()
             .to_string();
-        let name = map
+        let name = item
             .get("name")
             .and_then(|v| v.as_s().ok())
             .unwrap()
             .to_string();
-        let status_str = map.get("status").and_then(|v| v.as_s().ok()).unwrap();
+        let status_str = item.get("status").and_then(|v| v.as_s().ok()).unwrap();
         let status = ProjectStatus::from_str(&status_str).unwrap_or(ProjectStatus::INACTIVE);
-        let total_in_seconds = map
+        let total_in_seconds = item
             .get("total_in_seconds")
             .and_then(|v| v.as_n().ok())
             .unwrap()
             .parse()
             .unwrap_or(0);
-        let created_at = map
+        let created_at = item
             .get("created_at")
             .and_then(|v| v.as_s().ok())
             .and_then(|s| s.parse::<DateTime<Utc>>().ok())
             .expect("Couldnt parse created_at");
-        let created_by = map
+        let created_by = item
             .get("created_by")
             .and_then(|v| v.as_s().ok())
             .unwrap()
             .to_string();
-        let modified_at = map
+        let modified_at = item
             .get("modified_at")
             .and_then(|v| v.as_s().ok())
             .and_then(|s| s.parse::<DateTime<Utc>>().ok());
-        let modified_by = map
+        let modified_by = item
             .get("modified_by")
             .and_then(|v| v.as_s().ok())
             .map(|s| s.to_string());

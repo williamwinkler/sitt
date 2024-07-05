@@ -36,7 +36,7 @@ pub struct TimeTrack {
     pub status: TimeTrackStatus,
     pub started_at: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub finished_at: Option<DateTime<Utc>>,
+    pub stopped_at: Option<DateTime<Utc>>,
 }
 
 impl TimeTrack {
@@ -46,7 +46,7 @@ impl TimeTrack {
             project_id: project_id.to_string(),
             status: TimeTrackStatus::IN_PROGRESS,
             started_at: Utc::now(),
-            finished_at: None,
+            stopped_at: None,
         }
     }
 }
