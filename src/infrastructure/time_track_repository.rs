@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 
 use crate::models::time_track_model::{TimeTrack, TimeTrackStatus};
 
-use super::{database::Database, DbErrors};
+use super::{database::Database, DbError};
 
 pub struct TimeTrackRepository {
     db: Arc<Database>,
@@ -72,7 +72,7 @@ impl TimeTrackRepository {
         Self { db }
     }
 
-    pub async fn insert(&self, time_track: TimeTrack) -> Result<TimeTrack, DbErrors> {
+    pub async fn insert(&self, time_track: TimeTrack) -> Result<TimeTrack, DbError> {
         let item = TimeTrackRepository::convert_time_track_to_item(&time_track);
 
         let result = self
@@ -92,12 +92,12 @@ impl TimeTrackRepository {
                     time_track.project_id
                 );
                 println!("{:#?}", err);
-                Err(DbErrors::UnknownError)
+                Err(DbError::UnknownError)
             }
         }
     }
 
-    pub async fn get_in_progress(&self, project_id: &str) -> Result<TimeTrack, DbErrors> {
+    pub async fn get_in_progress(&self, project_id: &str) -> Result<TimeTrack, DbError> {
         let result = self
             .db
             .client
@@ -115,15 +115,15 @@ impl TimeTrackRepository {
             Ok(output) => match output.item {
                 Some(item) => match TimeTrackRepository::convert_item_to_time_track(&item) {
                     Some(time_track) => Ok(time_track),
-                    None => Err(DbErrors::UnknownError),
+                    None => Err(DbError::UnknownError),
                 },
-                None => Err(DbErrors::NotFound),
+                None => Err(DbError::NotFound),
             },
-            Err(_) => Err(DbErrors::UnknownError),
+            Err(_) => Err(DbError::UnknownError),
         }
     }
 
-    pub async fn update(&self, time_track: TimeTrack) -> Result<TimeTrack, DbErrors> {
+    pub async fn update(&self, time_track: TimeTrack) -> Result<TimeTrack, DbError> {
 
         // Create a list of updates, that need to happen to the DynamoDB item
         let mut updates = vec![
@@ -162,7 +162,7 @@ impl TimeTrackRepository {
                     time_track.id
                 );
                 println!("{:#?}", err);
-                Err(DbErrors::UnknownError)
+                Err(DbError::UnknownError)
             }
         }
     }
@@ -221,16 +221,3 @@ impl TimeTrackRepository {
         Some(time_track)
     }
 }
-
-// .expression_attribute_values(
-//     ":project_id",
-//     AttributeValue::S(time_track.project_id.to_string()),
-// )
-// .expression_attribute_values(
-//     ":status",
-//     AttributeValue::S(time_track.status.to_string()),
-// )
-// .expression_attribute_values(
-//     "started_at",
-//     AttributeValue::S(time_track.started_at.to_string()),
-// )

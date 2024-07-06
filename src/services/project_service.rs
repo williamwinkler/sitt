@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, sync::Arc};
 
 use crate::{
-    infrastructure::{project_repository::ProjectRepository, DbErrors},
+    infrastructure::{project_repository::ProjectRepository, DbError},
     models::project_model::{Project, ProjectStatus},
 };
 
@@ -30,12 +30,12 @@ impl ProjectService {
         // Get existing projects for user
         let existing_projects = match self.repository.get_all(created_by).await {
             Ok(projects) => projects,
-            Err(DbErrors::NotFound) => return Err(ProjectError::NotFound),
-            Err(DbErrors::FailedConvertion(msg)) => {
+            Err(DbError::NotFound) => return Err(ProjectError::NotFound),
+            Err(DbError::FailedConvertion(msg)) => {
                 println!("{msg}");
                 return Err(ProjectError::UnknownError);
             }
-            Err(DbErrors::UnknownError) => return Err(ProjectError::UnknownError),
+            Err(DbError::UnknownError) => return Err(ProjectError::UnknownError),
         };
 
         // Each user can maximum have 15 projects
@@ -71,12 +71,12 @@ impl ProjectService {
                 Ok(projects)
             }
             Err(e) => match e {
-                DbErrors::NotFound => Err(ProjectError::NotFound),
-                DbErrors::FailedConvertion(msg) => {
+                DbError::NotFound => Err(ProjectError::NotFound),
+                DbError::FailedConvertion(msg) => {
                     println!("{msg}");
                     Err(ProjectError::UnknownError)
                 }
-                DbErrors::UnknownError => Err(ProjectError::UnknownError),
+                DbError::UnknownError => Err(ProjectError::UnknownError),
             },
         }
     }
@@ -86,12 +86,26 @@ impl ProjectService {
 
         match result {
             Ok(project) => Ok(project),
-            Err(DbErrors::NotFound) => Err(ProjectError::NotFound),
-            Err(DbErrors::FailedConvertion(msg)) => {
+            Err(DbError::NotFound) => Err(ProjectError::NotFound),
+            Err(DbError::FailedConvertion(msg)) => {
                 println!("{msg}");
                 Err(ProjectError::UnknownError)
             }
-            Err(DbErrors::UnknownError) => Err(ProjectError::UnknownError),
+            Err(DbError::UnknownError) => Err(ProjectError::UnknownError),
+        }
+    }
+
+    pub async fn update(&self, project: Project) -> Result<Project, ProjectError> {
+        let result = self.repository.update(project).await;
+
+        match result {
+            Ok(project) => Ok(project),
+            Err(DbError::NotFound) => Err(ProjectError::NotFound),
+            Err(DbError::FailedConvertion(msg)) => {
+                println!("{msg}");
+                Err(ProjectError::UnknownError)
+            }
+            Err(DbError::UnknownError) => Err(ProjectError::UnknownError),
         }
     }
 
@@ -100,7 +114,7 @@ impl ProjectService {
 
         match result {
             Ok(_) => Ok(()),
-            Err(DbErrors::NotFound) => Err(ProjectError::NotFound),
+            Err(DbError::NotFound) => Err(ProjectError::NotFound),
             Err(_) => Err(ProjectError::UnknownError),
         }
     }
