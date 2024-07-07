@@ -1,4 +1,7 @@
-use crate::models::project_model::{Project, ProjectStatus};
+use crate::{
+    models::project_model::{Project, ProjectStatus},
+    services::project_service::ProjectError,
+};
 use chrono::{DateTime, Utc};
 
 use super::{database::Database, DbError};
@@ -146,7 +149,7 @@ impl ProjectRepository {
         }
     }
 
-    pub async fn update(&self, project: Project) -> Result<Project, DbError> {
+    pub async fn update(&self, project: &Project) -> Result<Project, DbError> {
         // create a list of updates, that need to happen to the DynamoDB item
         let mut updates = vec![
             "SET name = :name",
@@ -166,7 +169,7 @@ impl ProjectRepository {
         }
 
         let update_expression = updates.join(", ");
-        let item = ProjectRepository::convert_project_to_item(&project);
+        let item = ProjectRepository::convert_project_to_item(project);
 
         let result = self
             .db
@@ -176,11 +179,20 @@ impl ProjectRepository {
             .key("id", AttributeValue::S(project.id.to_string()))
             .set_update_expression(Some(update_expression))
             .set_expression_attribute_values(Some(item))
+            .return_values(aws_sdk_dynamodb::types::ReturnValue::AllNew)
             .send()
             .await;
 
         match result {
-            Ok(_) => Ok(project),
+            Ok(item) => match item.attributes {
+                Some(attr) => match ProjectRepository::convert_item_to_project(&attr) {
+                    Some(project) => Ok(project),
+                    None => Err(DbError::FailedConvertion(
+                        "Failed converting item to project".to_string(),
+                    )),
+                },
+                None => Err(DbError::NotFound),
+            },
             Err(err) => {
                 println!(
                     "An error occured while updating project for id: {}",
