@@ -4,6 +4,8 @@ use rocket::serde::json::Json;
 use serde::Serialize;
 use validator::ValidationErrors;
 
+
+
 #[derive(Serialize, Debug)]
 pub enum ErrorResponse {
     Simple {
