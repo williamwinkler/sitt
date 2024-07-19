@@ -1,13 +1,13 @@
-use std::{collections::HashMap, sync::Arc};
-
+use super::database::{Database, DbError};
+use crate::{
+    models::time_track_model::{TimeTrack, TimeTrackStatus},
+    User,
+};
 use aws_sdk_dynamodb::types::{
     AttributeDefinition, AttributeValue, KeySchemaElement, KeyType, ScalarAttributeType,
 };
 use chrono::{DateTime, Utc};
-
-use crate::models::time_track_model::{TimeTrack, TimeTrackStatus};
-
-use super::{database::Database, DbError};
+use std::{collections::HashMap, sync::Arc};
 
 pub struct TimeTrackRepository {
     db: Arc<Database>,
@@ -72,29 +72,18 @@ impl TimeTrackRepository {
         Self { db }
     }
 
-    pub async fn insert(&self, time_track: TimeTrack) -> Result<TimeTrack, DbError> {
-        let item = TimeTrackRepository::convert_time_track_to_item(&time_track);
+    pub async fn create(&self, time_track: &TimeTrack) -> Result<(), DbError> {
+        let item = TimeTrackRepository::convert_time_track_to_item(time_track);
 
-        let result = self
-            .db
+        self.db
             .client
             .put_item()
             .table_name(TABLE_NAME)
             .set_item(Some(item))
             .send()
-            .await;
-
-        match result {
-            Ok(_) => Ok(time_track),
-            Err(err) => {
-                println!(
-                    "An error occured inserting time_track for project: {}",
-                    time_track.project_id
-                );
-                println!("{:#?}", err);
-                Err(DbError::UnknownError)
-            }
-        }
+            .await
+            .map(|_| ())
+            .map_err(|err| DbError::Unknown(format!("{:#?}", err)))
     }
 
     pub async fn get_in_progress(&self, project_id: &str) -> Result<TimeTrack, DbError> {
@@ -115,32 +104,33 @@ impl TimeTrackRepository {
             Ok(output) => match output.item {
                 Some(item) => match TimeTrackRepository::convert_item_to_time_track(&item) {
                     Some(time_track) => Ok(time_track),
-                    None => Err(DbError::UnknownError),
+                    None => Err(DbError::Convertion {
+                        table: TABLE_NAME.into(),
+                        id: project_id.to_string(),
+                    }),
                 },
                 None => Err(DbError::NotFound),
             },
-            Err(_) => Err(DbError::UnknownError),
+            Err(err) => Err(DbError::Unknown(format!("{:#?}", err))),
         }
     }
 
-    pub async fn update(&self, time_track: TimeTrack) -> Result<TimeTrack, DbError> {
-
-        // Create a list of updates, that need to happen to the DynamoDB item
+    pub async fn update(&self, time_track: &TimeTrack) -> Result<(), DbError> {
+        // Create a list of updates that need to happen to the DynamoDB item
         let mut updates = vec![
-            "SET project_id = :project_id",
-            "SET status = :status",
-            "SET started_at = :started_at",
+            "project_id = :project_id",
+            "status = :status",
+            "started_at = :started_at",
         ];
 
-        if let Some(_) = &time_track.stopped_at {
-            updates.push("stopped_at = :stopped_at")
+        if time_track.stopped_at.is_some() {
+            updates.push("stopped_at = :stopped_at");
         }
 
-        let update_expression = updates.join(", ");
-        let item = TimeTrackRepository::convert_time_track_to_item(&time_track);
+        let update_expression = format!("SET {}", updates.join(", "));
+        let item = TimeTrackRepository::convert_time_track_to_item(time_track);
 
-        let result = self
-            .db
+        self.db
             .client
             .update_item()
             .table_name(TABLE_NAME)
@@ -149,22 +139,12 @@ impl TimeTrackRepository {
                 AttributeValue::S(time_track.project_id.to_string()),
             )
             .key("id", AttributeValue::S(time_track.id.to_string()))
-            .set_update_expression(Some(update_expression))
+            .update_expression(update_expression)
             .set_expression_attribute_values(Some(item))
             .send()
-            .await;
-
-        match result {
-            Ok(_) => Ok(time_track),
-            Err(err) => {
-                println!(
-                    "An error occured while updating time_track for id: {}",
-                    time_track.id
-                );
-                println!("{:#?}", err);
-                Err(DbError::UnknownError)
-            }
-        }
+            .await
+            .map(|_| ())
+            .map_err(|err| DbError::Unknown(format!("{:#?}", err)))
     }
 
     fn convert_time_track_to_item(tt: &TimeTrack) -> HashMap<String, AttributeValue> {

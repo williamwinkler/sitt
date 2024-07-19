@@ -29,13 +29,14 @@ async fn main() -> Result<(), rocket::Error> {
     let time_track_repository = Arc::new(TimeTrackRepository::new(database.clone()).await);
 
     // Services
-    let project_service =
-        Arc::new(services::project_service::ProjectService::new(project_repository.clone()));
+    let project_service = Arc::new(services::project_service::ProjectService::new(
+        project_repository.clone(),
+    ));
     let time_track_service = services::time_track_service::TimeTrackService::new(
         time_track_repository.clone(),
         project_service.clone(),
     );
-
+    
     let _rocket = rocket::build()
         .manage(user)
         .manage(project_service)
@@ -49,8 +50,6 @@ async fn main() -> Result<(), rocket::Error> {
 
     Ok(())
 }
-
-// let time_track_repository = Arc::new(TimeTrackRepository::new(database.clone()).await);
 
 // let time_track_service = services::time_track_service::TimeTrackService::new(
 //     time_track_repository.clone(),

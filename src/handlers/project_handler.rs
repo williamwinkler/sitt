@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::dtos::common_dtos::ErrorResponse;
 use super::validation::valid_uuid::ValidateUuid;
 use crate::handlers::dtos::project_dtos::{NewProjectDto, ProjectDto};
@@ -13,7 +15,7 @@ pub fn routes() -> Vec<Route> {
 
 #[post("/projects", format = "application/json", data = "<new_project>")]
 pub async fn create(
-    project_service: &State<ProjectService>,
+    project_service: &State<Arc<ProjectService>>,
     user: &State<User>,
     new_project: NewProjectDto,
 ) -> Result<status::Created<Json<ProjectDto>>, status::Custom<Json<ErrorResponse>>> {
@@ -22,19 +24,40 @@ pub async fn create(
     match project_service.create(project_name, &user).await {
         Ok(project) => Ok(status::Created::new("/projects").body(Json(ProjectDto::from(project)))),
         Err(err) => match err {
-            ProjectError::ProjectExistsWithSameName => Err(ErrorResponse::custom(
-                Status::BadRequest,
-                &format!("A project already exists with name: {project_name}"),
-                None,
+            ProjectError::NotFound => Err(status::Custom(
+                Status::NotFound,
+                Json(ErrorResponse {
+                    error_mesage: err.to_string(),
+                }),
             )),
-            _ => Err(ErrorResponse::internal_server_error()),
+            ProjectError::ProjectExistsWithSameName(_) => Err(status::Custom(
+                Status::Conflict,
+                Json(ErrorResponse {
+                    error_mesage: err.to_string(),
+                }),
+            )),
+            ProjectError::TooManyProjects => Err(status::Custom(
+                Status::BadRequest,
+                Json(ErrorResponse {
+                    error_mesage: err.to_string(),
+                }),
+            )),
+            _ => {
+                println!("{}", err.to_string());
+                Err(status::Custom(
+                    Status::InternalServerError,
+                    Json(ErrorResponse {
+                        error_mesage: String::from("An internal error occurred"),
+                    }),
+                ))
+            }
         },
     }
 }
 
 #[get("/projects")]
 pub async fn get_all(
-    project_service: &State<ProjectService>,
+    project_service: &State<Arc<ProjectService>>,
     user: &State<User>,
 ) -> Result<Json<Vec<ProjectDto>>, status::Custom<Json<ErrorResponse>>> {
     match project_service.get_all(&user).await {
@@ -42,15 +65,21 @@ pub async fn get_all(
             let project_dtos = projects.into_iter().map(ProjectDto::from).collect();
             Ok(Json(project_dtos))
         }
-        Err(err) => match err {
-            _ => Err(ErrorResponse::internal_server_error()),
-        },
+        Err(err) => {
+            println!("{}", err.to_string());
+            Err(status::Custom(
+                Status::InternalServerError,
+                Json(ErrorResponse {
+                    error_mesage: String::from("An internal error occurred"),
+                }),
+            ))
+        }
     }
 }
 
 #[get("/projects/<project_id>")]
 pub async fn get(
-    project_service: &State<ProjectService>,
+    project_service: &State<Arc<ProjectService>>,
     user: &State<User>,
     project_id: ValidateUuid,
 ) -> Result<Json<ProjectDto>, status::Custom<Json<ErrorResponse>>> {
@@ -59,19 +88,28 @@ pub async fn get(
     match project_service.get(&project_id, &user).await {
         Ok(project) => Ok(Json(ProjectDto::from(project))),
         Err(err) => match err {
-            ProjectError::NotFound => Err(ErrorResponse::custom(
+            ProjectError::NotFound => Err(status::Custom(
                 Status::NotFound,
-                &format!("No project found with id: {project_id}"),
-                None,
+                Json(ErrorResponse {
+                    error_mesage: err.to_string(),
+                }),
             )),
-            _ => Err(ErrorResponse::internal_server_error()),
+            _ => {
+                println!("{}", err.to_string());
+                Err(status::Custom(
+                    Status::InternalServerError,
+                    Json(ErrorResponse {
+                        error_mesage: String::from("An internal error occurred"),
+                    }),
+                ))
+            }
         },
     }
 }
 
 #[delete("/projects/<project_id>")]
 pub async fn delete(
-    project_service: &State<ProjectService>,
+    project_service: &State<Arc<ProjectService>>,
     user: &State<User>,
     project_id: ValidateUuid,
 ) -> Result<status::NoContent, status::Custom<Json<ErrorResponse>>> {
@@ -80,16 +118,21 @@ pub async fn delete(
     match project_service.delete(&project_id, &user).await {
         Ok(_) => Ok(status::NoContent),
         Err(err) => match err {
-            ProjectError::NotFound => Err(ErrorResponse::custom(
+            ProjectError::NotFound => Err(status::Custom(
                 Status::NotFound,
-                &format!("No project found with id: {project_id}"),
-                None,
+                Json(ErrorResponse {
+                    error_mesage: err.to_string(),
+                }),
             )),
-            _ => Err(ErrorResponse::custom(
-                Status::InternalServerError,
-                "An unknown error occurred",
-                None,
-            )),
+            _ => {
+                println!("{}", err.to_string());
+                Err(status::Custom(
+                    Status::InternalServerError,
+                    Json(ErrorResponse {
+                        error_mesage: String::from("An internal error occurred"),
+                    }),
+                ))
+            }
         },
     }
 }

@@ -25,12 +25,21 @@ pub async fn start(
             res.0, &res.1,
         ))),
         Err(err) => match err {
-            TimeTrackError::NotFound => Err(ErrorResponse::custom(
+            TimeTrackError::NotFound => Err(status::Custom(
                 Status::NotFound,
-                &format!("No project found with id: {project_id}"),
-                None,
+                Json(ErrorResponse {
+                    error_mesage: err.to_string(),
+                }),
             )),
-            _ => Err(ErrorResponse::internal_server_error()),
+            _ => {
+                println!("{}", err.to_string());
+                Err(status::Custom(
+                    Status::InternalServerError,
+                    Json(ErrorResponse {
+                        error_mesage: String::from("An internal error occurred"),
+                    }),
+                ))
+            }
         },
     }
 }
@@ -48,12 +57,21 @@ pub async fn stop(
             res.0, &res.1,
         ))),
         Err(err) => match err {
-            TimeTrackError::NotFound => Err(ErrorResponse::custom(
+            TimeTrackError::NotFound => Err(status::Custom(
                 Status::NotFound,
-                &format!("No project found with id: {project_id}"),
-                None,
+                Json(ErrorResponse {
+                    error_mesage: err.to_string(),
+                }),
             )),
-            _ => Err(ErrorResponse::internal_server_error()),
+            _ => {
+                println!("{}", err.to_string());
+                Err(status::Custom(
+                    Status::InternalServerError,
+                    Json(ErrorResponse {
+                        error_mesage: String::from("An internal error occurred"),
+                    }),
+                ))
+            }
         },
     }
 }

@@ -1,6 +1,7 @@
 use chrono::{self, DateTime, Utc};
 use core::fmt;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -18,12 +19,19 @@ impl fmt::Display for ProjectStatus {
     }
 }
 
-impl ProjectStatus {
-    pub fn from_str(s: &str) -> Option<Self> {
+#[derive(thiserror::Error, Debug)]
+pub enum ParseProjectStatusError {
+    #[error("Invalid project status")]
+    InvalidStatus,
+}
+
+impl FromStr for ProjectStatus {
+    type Err = ParseProjectStatusError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "ACTIVE" => Some(ProjectStatus::ACTIVE),
-            "INACTIVE" => Some(ProjectStatus::INACTIVE),
-            _ => None,
+            "ACTIVE" => Ok(ProjectStatus::ACTIVE),
+            "INACTIVE" => Ok(ProjectStatus::INACTIVE),
+            _ => Err(ParseProjectStatusError::InvalidStatus),
         }
     }
 }
