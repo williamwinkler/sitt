@@ -21,7 +21,9 @@ impl From<DbError> for ProjectError {
     fn from(error: DbError) -> Self {
         match error {
             DbError::NotFound => ProjectError::NotFound,
-            DbError::AlreadyExists { key: _, value } => ProjectError::ProjectExistsWithSameName(value),
+            DbError::AlreadyExists { key: _, value } => {
+                ProjectError::ProjectExistsWithSameName(value)
+            }
             DbError::Convertion { table, id } => ProjectError::Unknown(format!(
                 "Conversion error in table '{}' for id '{}'",
                 table, id
@@ -57,9 +59,9 @@ impl ProjectService {
             )));
         }
 
-        // Create an insert the new project into the db
+        // Create the new project
         let project = Project::new(project_name, &user.name);
-        self.repository.insert(&project).await?;
+        self.repository.create(&project).await?;
 
         Ok(project)
     }

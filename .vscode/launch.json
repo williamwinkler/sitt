@@ -4,11 +4,41 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+    
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Debug",
-      "program": "${workspaceFolder}/<executable file>",
+      "name": "Debug executable 'sitt_api'",
+      "cargo": {
+        "args": [
+          "build",
+          "--bin=sitt_api",
+          "--package=sitt_api"
+        ],
+        "filter": {
+          "name": "sitt_api",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in executable 'sitt_api'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--bin=sitt_api",
+          "--package=sitt_api"
+        ],
+        "filter": {
+          "name": "sitt_api",
+          "kind": "bin"
+        }
+      },
       "args": [],
       "cwd": "${workspaceFolder}"
     }

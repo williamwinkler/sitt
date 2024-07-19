@@ -1,5 +1,8 @@
 use super::database::{Database, DbError};
-use crate::{models::project_model::{Project, ProjectStatus}, User};
+use crate::{
+    models::project_model::{Project, ProjectStatus},
+    User,
+};
 use aws_sdk_dynamodb::types::{
     AttributeDefinition, AttributeValue, KeySchemaElement, KeyType, ScalarAttributeType,
 };
@@ -59,8 +62,8 @@ impl ProjectRepository {
         Self { db }
     }
 
-    pub async fn insert(&self, project: &Project) -> Result<(), DbError> {
-        let item = ProjectRepository::convert_project_to_item(&project);
+    pub async fn create(&self, project: &Project) -> Result<(), DbError> {
+        let item = ProjectRepository::convert_project_to_item(project);
 
         self.db
             .client
@@ -219,38 +222,38 @@ impl ProjectRepository {
     fn convert_project_to_item(project: &Project) -> HashMap<String, AttributeValue> {
         let mut item = HashMap::new();
 
-        item.insert(":id".to_string(), AttributeValue::S(project.id.to_string()));
+        item.insert("id".to_string(), AttributeValue::S(project.id.to_string()));
         item.insert(
-            ":name".to_string(),
+            "name".to_string(),
             AttributeValue::S(project.name.to_string()),
         );
         item.insert(
-            ":status".to_string(),
+            "status".to_string(),
             AttributeValue::S(project.status.to_string()),
         );
         item.insert(
-            ":total_in_seconds".to_string(),
+            "total_in_seconds".to_string(),
             AttributeValue::N(project.total_in_seconds.to_string()), // TODO: check on durations
         );
         item.insert(
-            ":created_at".to_string(),
+            "created_at".to_string(),
             AttributeValue::S(project.created_at.to_string()),
         );
         item.insert(
-            ":created_by".to_string(),
+            "created_by".to_string(),
             AttributeValue::S(project.created_by.to_string()),
         );
 
         if let Some(modified_at) = project.modified_at.clone() {
             item.insert(
-                ":modified_at".to_string(),
+                "modified_at".to_string(),
                 AttributeValue::S(modified_at.to_string()),
             );
         }
 
         if let Some(modified_by) = project.modified_by.clone() {
             item.insert(
-                ":modified_by".to_string(),
+                "modified_by".to_string(),
                 AttributeValue::S(modified_by.to_string()),
             );
         }
