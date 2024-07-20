@@ -1,7 +1,7 @@
 use chrono::{self, DateTime, Utc};
 use core::fmt;
 use serde::Serialize;
-use std::str::FromStr;
+use std::{str::FromStr, time::Duration};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -43,7 +43,7 @@ pub struct Project {
     pub id: String,
     pub name: String,
     pub status: ProjectStatus,
-    pub total_in_seconds: i64,
+    pub total_duration: Duration,
     pub created_at: DateTime<Utc>,
     pub created_by: String,
     pub modified_at: Option<DateTime<Utc>>,
@@ -56,7 +56,7 @@ impl Project {
             id: Uuid::new_v4().to_string(),
             name: project_name.to_string(),
             status: ProjectStatus::Inactive,
-            total_in_seconds: 0,
+            total_duration: Duration::new(0, 0),
             created_at: Utc::now(),
             created_by: created_by.to_string(),
             modified_at: None,

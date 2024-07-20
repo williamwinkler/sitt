@@ -4,6 +4,7 @@ use aws_sdk_dynamodb::types::{
     AttributeDefinition, AttributeValue, KeySchemaElement, KeyType, ScalarAttributeType,
 };
 use chrono::{DateTime, Utc};
+use humantime::{format_duration, parse_duration};
 use std::{collections::HashMap, sync::Arc};
 
 #[derive(Debug)]
@@ -151,7 +152,7 @@ impl ProjectRepository {
         let mut updates = vec![
             "project_name = :project_name",
             "project_status = :project_status",
-            "total_in_seconds = :total_in_seconds",
+            "total_duration = :total_duration",
         ];
         item.insert(
             String::from(":project_name"),
@@ -162,8 +163,8 @@ impl ProjectRepository {
             AttributeValue::S(project.status.to_string()),
         );
         item.insert(
-            String::from(":total_in_seconds"),
-            AttributeValue::N(project.total_in_seconds.to_string()),
+            String::from(":total_duration"),
+            AttributeValue::S(format_duration(project.total_duration).to_string()),
         );
 
         if let Some(modified_at) = project.modified_at {
@@ -239,7 +240,7 @@ impl ProjectRepository {
         let key_id = String::from("id");
         let key_project_name = String::from("project_name");
         let key_status = String::from("project_status");
-        let key_total_in_seconds = String::from("total_in_seconds");
+        let key_total_duration = String::from("total_duration");
         let key_created_at = String::from("created_at");
         let key_created_by = String::from("created_by");
         let key_modified_at = String::from("modified_at");
@@ -252,8 +253,8 @@ impl ProjectRepository {
         );
         item.insert(key_status, AttributeValue::S(project.status.to_string()));
         item.insert(
-            key_total_in_seconds,
-            AttributeValue::N(project.total_in_seconds.to_string()), // TODO: check on durations
+            key_total_duration,
+            AttributeValue::S(format_duration(project.total_duration).to_string()), // TODO: check on durations
         );
         item.insert(
             key_created_at,
@@ -279,7 +280,8 @@ impl ProjectRepository {
         let id = item.get("id")?.as_s().ok()?.to_string();
         let name = item.get("project_name")?.as_s().ok()?.to_string();
         let status = item.get("project_status")?.as_s().ok()?.parse().ok()?;
-        let total_in_seconds = item.get("total_in_seconds")?.as_n().ok()?.parse().ok()?;
+        let total_duration_str = item.get("total_duration")?.as_s().ok()?;
+        let total_duration = parse_duration(total_duration_str).ok()?;
         let created_at = item
             .get("created_at")?
             .as_s()
@@ -301,7 +303,7 @@ impl ProjectRepository {
             id,
             name,
             status,
-            total_in_seconds,
+            total_duration,
             created_at,
             created_by,
             modified_at,

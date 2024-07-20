@@ -7,7 +7,8 @@ use aws_sdk_dynamodb::types::{
     AttributeDefinition, AttributeValue, KeySchemaElement, KeyType, ScalarAttributeType,
 };
 use chrono::{DateTime, Utc};
-use std::{collections::HashMap, sync::Arc};
+use humantime::{parse_duration, format_duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 #[derive(Debug)]
 pub struct TimeTrackRepository {
@@ -86,7 +87,7 @@ impl TimeTrackRepository {
             .map_err(|err| DbError::Unknown(format!("{}, create(): {:#?}", TABLE_NAME, err)))
     }
 
-    pub async fn get_in_progress(&self, project_id: &str) -> Result<TimeTrack, DbError> {
+    pub async fn get_in_progress(&self, user: &User, project_id: &str) -> Result<TimeTrack, DbError> {
         let mut expression_attribute_values = HashMap::new();
         expression_attribute_values.insert(
             ":project_id".to_string(),
@@ -96,6 +97,10 @@ impl TimeTrackRepository {
             ":time_tracking_status".to_string(),
             AttributeValue::S(TimeTrackStatus::InProgress.to_string()),
         );
+        expression_attribute_values.insert(
+            ":created_by".to_string(),
+            AttributeValue::S(user.name.to_string()),
+        );
 
         let result = self
             .db
@@ -103,7 +108,7 @@ impl TimeTrackRepository {
             .query()
             .table_name(TABLE_NAME)
             .key_condition_expression("project_id = :project_id")
-            .filter_expression("time_tracking_status = :time_tracking_status")
+            .filter_expression("time_tracking_status = :time_tracking_status AND created_by = :created_by")
             .set_expression_attribute_values(Some(expression_attribute_values))
             .send()
             .await;
@@ -194,6 +199,7 @@ impl TimeTrackRepository {
         let mut updates = vec![
             "time_tracking_status = :time_tracking_status",
             "started_at = :started_at",
+            "total_duration = :total_duration",
         ];
 
         item.insert(
@@ -203,6 +209,10 @@ impl TimeTrackRepository {
         item.insert(
             String::from(":started_at"),
             AttributeValue::S(time_track.started_at.to_string()),
+        );
+        item.insert(
+            String::from(":total_duration"),
+            AttributeValue::S(format_duration(time_track.total_duration).to_string()),
         );
 
         if let Some(stopped_at) = time_track.stopped_at {
@@ -338,7 +348,20 @@ impl TimeTrackRepository {
 
         let mut stopped_at: Option<DateTime<Utc>> = None;
         if let Some(stopped_at_attr) = item.get("stopped_at") {
-            stopped_at = stopped_at_attr.as_s().ok()?.parse::<DateTime<Utc>>().ok();
+            stopped_at = stopped_at_attr.as_s().ok()?.parse().ok();
+        }
+        let mut total_duration = Duration::new(0,0);
+        if let Some(duration_at_attr) = item.get("total_duration") {
+            let duration_as_str = duration_at_attr.as_s().ok()?;
+            total_duration = match parse_duration(&duration_as_str) {
+                Ok(duration) => duration,
+                Err(err) => {
+                    eprintln!("{:#?}", err);
+                    return None;
+                }
+            }
+        } else {
+            total_duration = calculate_duration_to_now(&started_at);
         }
 
         let time_track = TimeTrack {
@@ -347,9 +370,15 @@ impl TimeTrackRepository {
             status,
             started_at,
             stopped_at,
+            total_duration,
             created_by,
         };
 
         Some(time_track)
     }
+}
+
+fn calculate_duration_to_now(started_at: &DateTime<Utc>) -> Duration {
+    let time_delta = Utc::now() - started_at;
+    Duration::new(time_delta.num_seconds() as u64, 0)
 }

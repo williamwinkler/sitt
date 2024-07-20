@@ -1,6 +1,9 @@
+use std::time::Duration;
+
 use crate::models::project_model::{Project, ProjectStatus};
 
 use chrono::{DateTime, Utc};
+use humantime::format_duration;
 use rocket::data::{self, Data, FromData, ToByteUnit};
 use rocket::http::Status;
 use rocket::outcome::Outcome;
@@ -66,7 +69,7 @@ pub struct ProjectDto {
     pub project_id: String,
     pub name: String,
     pub status: ProjectStatus,
-    pub total_in_seconds: i64,
+    pub total_duration: String,
     pub created_at: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modified_at: Option<DateTime<Utc>>,
@@ -78,7 +81,7 @@ impl From<Project> for ProjectDto {
             project_id: p.id,
             name: p.name,
             status: p.status,
-            total_in_seconds: p.total_in_seconds,
+            total_duration: format_duration(p.total_duration).to_string(),
             created_at: p.created_at,
             modified_at: p.modified_at,
         }

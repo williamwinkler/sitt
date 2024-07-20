@@ -1,12 +1,12 @@
+use crate::User;
 use chrono::{DateTime, Utc};
 use core::fmt;
 use serde::Serialize;
 use std::str::FromStr;
+use std::time::Duration;
 use uuid::Uuid;
 
-use crate::User;
-
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, PartialEq)]
 pub enum TimeTrackStatus {
     #[serde(rename(serialize = "IN_PROGRESS"))]
     InProgress,
@@ -46,8 +46,8 @@ pub struct TimeTrack {
     pub project_id: String,
     pub status: TimeTrackStatus,
     pub started_at: DateTime<Utc>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub stopped_at: Option<DateTime<Utc>>,
+    pub total_duration: Duration,
     pub created_by: String,
 }
 
@@ -59,6 +59,7 @@ impl TimeTrack {
             status: TimeTrackStatus::InProgress,
             started_at: Utc::now(),
             stopped_at: None,
+            total_duration: Duration::new(0, 0),
             created_by: user.name.to_string(),
         }
     }

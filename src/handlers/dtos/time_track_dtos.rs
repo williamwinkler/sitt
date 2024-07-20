@@ -1,5 +1,8 @@
+use std::time::Duration;
+
 use crate::models::time_track_model::{TimeTrack, TimeTrackStatus};
 use chrono::{DateTime, Utc};
+use humantime::{format_duration, parse_duration};
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -9,7 +12,9 @@ pub struct TimeTrackDto {
     pub project_name: String,
     pub status: TimeTrackStatus,
     pub started_at: DateTime<Utc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub stopped_at: Option<DateTime<Utc>>,
+    pub total_duration: String,
     pub created_by: String,
 }
 
@@ -22,6 +27,7 @@ impl TimeTrackDto {
             status: t.status,
             started_at: t.started_at,
             stopped_at: t.stopped_at,
+            total_duration: format_duration(t.total_duration).to_string(),
             created_by: t.created_by,
         }
     }

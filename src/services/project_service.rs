@@ -95,11 +95,53 @@ impl ProjectService {
             }
         });
 
+        let has_active_project = projects.iter().any(|p| p.status == ProjectStatus::Active);
+
+        if has_active_project {
+            // Aquire read lock...
+            let time_track_service_guard = self.time_track_service.read().await;
+            // Check if the time_track_service is set
+            let time_track_service = match time_track_service_guard.as_ref() {
+                Some(service) => service,
+                None => return Err(ProjectError::NoTimeTrackService),
+            };
+
+            // Map projects, updating the total_duration for ACTIVE projects
+            for project in &mut projects {
+                if project.status == ProjectStatus::Active {
+                    let time_track = time_track_service
+                        .get_in_progress(user, &project.id, &project.name)
+                        .await
+                        .expect("There should be a time track in progress");
+
+                    project.total_duration += time_track.total_duration;
+                }
+            }
+        }
+
         Ok(projects)
     }
 
     pub async fn get(&self, user: &User, project_id: &str) -> Result<Project, ProjectError> {
-        let project = self.repository.get(user, project_id).await?;
+        let mut project = self.repository.get(user, project_id).await?;
+
+        // If project is active, get up to date duration
+        if project.status == ProjectStatus::Active {
+            // Aquire read lock...
+            let time_track_service_guard = self.time_track_service.read().await;
+            // Check if the time_track_service is set
+            let time_track_service = match time_track_service_guard.as_ref() {
+                Some(service) => service,
+                None => return Err(ProjectError::NoTimeTrackService),
+            };
+
+            let time_track = time_track_service
+                .get_in_progress(user, &project.id, &project.name)
+                .await
+                .expect("There should be a time track in progress");
+
+            project.total_duration += time_track.total_duration;
+        }
 
         Ok(project)
     }
@@ -124,7 +166,10 @@ impl ProjectService {
         };
 
         // First, execute the time track deletion
-        match time_track_service.delete_for_project(user, project_id).await {
+        match time_track_service
+            .delete_for_project(user, project_id)
+            .await
+        {
             Ok(_) => (),
             Err(err) => {
                 return Err(ProjectError::Unknown(format!(
