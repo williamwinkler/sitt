@@ -33,6 +33,12 @@ pub async fn start(
                     error_mesage: err.to_string(),
                 }),
             )),
+            TimeTrackError::ProjectNotFound => Err(status::Custom(
+                Status::NotFound,
+                Json(ErrorResponse {
+                    error_mesage: err.to_string(),
+                }),
+            )),
             TimeTrackError::AlreadyTrackingTime(_) => Err(status::Custom(
                 Status::BadRequest,
                 Json(ErrorResponse {
@@ -66,6 +72,12 @@ pub async fn stop(
         ))),
         Err(err) => match err {
             TimeTrackError::NotFound => Err(status::Custom(
+                Status::NotFound,
+                Json(ErrorResponse {
+                    error_mesage: err.to_string(),
+                }),
+            )),
+            TimeTrackError::ProjectNotFound => Err(status::Custom(
                 Status::NotFound,
                 Json(ErrorResponse {
                     error_mesage: err.to_string(),

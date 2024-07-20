@@ -17,7 +17,7 @@ pub enum ProjectError {
     TooManyProjects,
     #[error("Project exists with same name: {0}")]
     ProjectExistsWithSameName(String),
-    #[error("Can not delete project, when there is no time_tracking_service")]
+    #[error("Can not delete project, when time_tracking_service is None")]
     NoTimeTrackService,
     #[error("Unknown error: {0}")]
     Unknown(String),

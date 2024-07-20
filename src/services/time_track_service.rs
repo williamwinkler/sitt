@@ -16,9 +16,9 @@ pub enum TimeTrackError {
     NotFound,
     #[error("Project not found")]
     ProjectNotFound,
-    #[error("No time tracking is progress for project '{0}'.")]
+    #[error("No time tracking is in progress for project '{0}'.")]
     NoInProgressTimeTracking(String),
-    #[error("You are already tracking time on project '{0}'")]
+    #[error("Time tracking is already in progress on project '{0}'")]
     AlreadyTrackingTime(String),
     #[error("Unknown error: {0}")]
     Unknown(String),
