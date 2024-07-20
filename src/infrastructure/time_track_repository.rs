@@ -48,7 +48,7 @@ impl TimeTrackRepository {
 
         let keyschema_sort = KeySchemaElement::builder()
             .attribute_name("id")
-            .key_type(KeyType::Hash)
+            .key_type(KeyType::Range)
             .build()
             .expect(&format!(
                 "Error building the key schema partion 'id' for table: {}",
@@ -65,9 +65,8 @@ impl TimeTrackRepository {
             .attribute_definitions(attr_sort)
             .key_schema(keyschema_sort)
             .send()
-            .await;
-
-        // TODO: handle create table result
+            .await
+            .map_err(|err| println!("{:#?}", err));
 
         Self { db }
     }
@@ -83,7 +82,7 @@ impl TimeTrackRepository {
             .send()
             .await
             .map(|_| ())
-            .map_err(|err| DbError::Unknown(format!("{:#?}", err)))
+            .map_err(|err| DbError::Unknown(format!("{}: {:#?}", TABLE_NAME, err)))
     }
 
     pub async fn get_in_progress(&self, project_id: &str) -> Result<TimeTrack, DbError> {
@@ -111,7 +110,7 @@ impl TimeTrackRepository {
                 },
                 None => Err(DbError::NotFound),
             },
-            Err(err) => Err(DbError::Unknown(format!("{:#?}", err))),
+            Err(err) => Err(DbError::Unknown(format!("{}: {:#?}", TABLE_NAME, err))),
         }
     }
 
@@ -144,7 +143,7 @@ impl TimeTrackRepository {
             .send()
             .await
             .map(|_| ())
-            .map_err(|err| DbError::Unknown(format!("{:#?}", err)))
+            .map_err(|err| DbError::Unknown(format!("{}: {:#?}", TABLE_NAME, err)))
     }
 
     fn convert_time_track_to_item(tt: &TimeTrack) -> HashMap<String, AttributeValue> {

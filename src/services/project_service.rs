@@ -21,9 +21,6 @@ impl From<DbError> for ProjectError {
     fn from(error: DbError) -> Self {
         match error {
             DbError::NotFound => ProjectError::NotFound,
-            DbError::AlreadyExists { key: _, value } => {
-                ProjectError::ProjectExistsWithSameName(value)
-            }
             DbError::Convertion { table, id } => ProjectError::Unknown(format!(
                 "Conversion error in table '{}' for id '{}'",
                 table, id

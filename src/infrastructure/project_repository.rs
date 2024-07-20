@@ -1,8 +1,5 @@
 use super::database::{Database, DbError};
-use crate::{
-    models::project_model::{Project, ProjectStatus},
-    User,
-};
+use crate::{models::project_model::Project, User};
 use aws_sdk_dynamodb::types::{
     AttributeDefinition, AttributeValue, KeySchemaElement, KeyType, ScalarAttributeType,
 };
@@ -44,7 +41,7 @@ impl ProjectRepository {
             .build()
             .expect("Error building the key schema partion");
 
-        // Create the table name
+        // Create the table
         let _ = db
             .client
             .create_table()
@@ -55,15 +52,14 @@ impl ProjectRepository {
             .attribute_definitions(attr_sort)
             .key_schema(keyschema_sort)
             .send()
-            .await;
-
-        // TODO: handle create table result
+            .await
+            .map_err(|err| println!("{:#?}", err));
 
         Self { db }
     }
 
     pub async fn create(&self, project: &Project) -> Result<(), DbError> {
-        let item = ProjectRepository::convert_project_to_item(project);
+        let item = ProjectRepository::convert_project_to_item(project, false);
 
         self.db
             .client
@@ -73,7 +69,7 @@ impl ProjectRepository {
             .send()
             .await
             .map(|_| ())
-            .map_err(|err| DbError::Unknown(format!("{:#?}", err)))
+            .map_err(|err| DbError::Unknown(format!("{}: {:#?}", TABLE_NAME, err)))
     }
 
     pub async fn get(&self, project_id: &str, created_by: &str) -> Result<Project, DbError> {
@@ -100,7 +96,7 @@ impl ProjectRepository {
             },
             Err(err) => {
                 format!("{:#?}", err);
-                Err(DbError::Unknown(format!("{:#?}", err)))
+                Err(DbError::Unknown(format!("{}: {:#?}", TABLE_NAME, err)))
             }
         }
     }
@@ -140,7 +136,7 @@ impl ProjectRepository {
                 }
                 None => Err(DbError::NotFound),
             },
-            Err(err) => Err(DbError::Unknown(format!("{:#?}", err))),
+            Err(err) => Err(DbError::Unknown(format!("{}: {:#?}", TABLE_NAME, err))),
         }
     }
 
@@ -149,33 +145,51 @@ impl ProjectRepository {
         project.modified_at = Some(Utc::now());
         project.modified_by = Some(user.name.to_string());
 
+        let mut item = HashMap::new();
+
         // Create a list of updates that need to happen to the DynamoDB item
         let mut updates = vec![
-            "name = :name",
-            "status = :status",
+            "project_name = :project_name",
+            "project_status = :project_status",
             "total_in_seconds = :total_in_seconds",
         ];
+        item.insert(
+            String::from(":project_name"),
+            AttributeValue::S(project.name.clone()),
+        );
+        item.insert(
+            String::from(":project_status"),
+            AttributeValue::S(project.status.to_string()),
+        );
+        item.insert(
+            String::from(":total_in_seconds"),
+            AttributeValue::N(project.total_in_seconds.to_string()),
+        );
 
-        if let Some(_) = &project.modified_at {
+        if let Some(modified_at) = project.modified_at {
             updates.push("modified_at = :modified_at");
-        } else {
-            // TODO: return modified missing
+            item.insert(
+                String::from(":modified_at"),
+                AttributeValue::S(modified_at.to_string()),
+            );
         }
-        if let Some(_) = &project.modified_by {
+        if let Some(modified_by) = project.modified_by.clone() {
             updates.push("modified_by = :modified_by");
-        } else {
-            // TODO: return modified missing
+            item.insert(String::from(":modified_by"), AttributeValue::S(modified_by));
         }
 
         // Add the SET keyword only once
         let update_expression = format!("SET {}", updates.join(", "));
-        let item = ProjectRepository::convert_project_to_item(project);
 
         let result = self
             .db
             .client
             .update_item()
             .table_name(TABLE_NAME)
+            .key(
+                "created_by",
+                AttributeValue::S(project.created_by.to_string()),
+            )
             .key("id", AttributeValue::S(project.id.to_string()))
             .update_expression(update_expression)
             .set_expression_attribute_values(Some(item))
@@ -194,7 +208,7 @@ impl ProjectRepository {
                 },
                 None => Err(DbError::NotFound),
             },
-            Err(err) => Err(DbError::Unknown(format!("{:#?}", err))),
+            Err(err) => Err(DbError::Unknown(format!("{}: {:#?}", TABLE_NAME, err))),
         }
     }
 
@@ -215,47 +229,61 @@ impl ProjectRepository {
                 Some(_) => Ok(()),
                 None => Err(DbError::NotFound),
             },
-            Err(err) => Err(DbError::Unknown(format!("{:#?}", err))),
+            Err(err) => Err(DbError::Unknown(format!("{}: {:#?}", TABLE_NAME, err))),
         }
     }
 
-    fn convert_project_to_item(project: &Project) -> HashMap<String, AttributeValue> {
+    fn convert_project_to_item(
+        project: &Project,
+        is_update: bool,
+    ) -> HashMap<String, AttributeValue> {
         let mut item = HashMap::new();
 
-        item.insert("id".to_string(), AttributeValue::S(project.id.to_string()));
+        let mut key_id = String::from("id");
+        let mut key_project_name = String::from("project_name");
+        let mut key_status = String::from("project_status");
+        let mut key_total_in_seconds = String::from("total_in_seconds");
+        let mut key_created_at = String::from("created_at");
+        let mut key_created_by = String::from("created_by");
+        let mut key_modified_at = String::from("modified_at");
+        let mut key_modified_by = String::from("modified_by");
+
+        if is_update {
+            key_id = format!(":{}", key_id);
+            key_project_name = format!(":{}", key_project_name);
+            key_status = format!(":{}", key_status);
+            key_total_in_seconds = format!(":{}", key_total_in_seconds);
+            key_created_at = format!(":{}", key_created_at);
+            key_created_by = format!(":{}", key_created_by);
+            key_modified_at = format!(":{}", key_modified_at);
+            key_modified_by = format!(":{}", key_modified_by);
+        }
+
+        item.insert(key_id, AttributeValue::S(project.id.to_string()));
         item.insert(
-            "name".to_string(),
+            key_project_name,
             AttributeValue::S(project.name.to_string()),
         );
+        item.insert(key_status, AttributeValue::S(project.status.to_string()));
         item.insert(
-            "status".to_string(),
-            AttributeValue::S(project.status.to_string()),
-        );
-        item.insert(
-            "total_in_seconds".to_string(),
+            key_total_in_seconds,
             AttributeValue::N(project.total_in_seconds.to_string()), // TODO: check on durations
         );
         item.insert(
-            "created_at".to_string(),
+            key_created_at,
             AttributeValue::S(project.created_at.to_string()),
         );
         item.insert(
-            "created_by".to_string(),
+            key_created_by,
             AttributeValue::S(project.created_by.to_string()),
         );
 
         if let Some(modified_at) = project.modified_at.clone() {
-            item.insert(
-                "modified_at".to_string(),
-                AttributeValue::S(modified_at.to_string()),
-            );
+            item.insert(key_modified_at, AttributeValue::S(modified_at.to_string()));
         }
 
         if let Some(modified_by) = project.modified_by.clone() {
-            item.insert(
-                "modified_by".to_string(),
-                AttributeValue::S(modified_by.to_string()),
-            );
+            item.insert(key_modified_by, AttributeValue::S(modified_by.to_string()));
         }
 
         item
@@ -263,8 +291,14 @@ impl ProjectRepository {
 
     fn convert_item_to_project(item: &HashMap<String, AttributeValue>) -> Option<Project> {
         let id = item.get("id")?.as_s().ok()?.to_string();
-        let name = item.get("name")?.as_s().ok()?.to_string();
-        let status = item.get("status")?.as_s().ok()?.to_string().parse().ok()?;
+        let name = item.get("project_name")?.as_s().ok()?.to_string();
+        let status = item
+            .get("project_status")?
+            .as_s()
+            .ok()?
+            .to_string()
+            .parse()
+            .ok()?;
         let total_in_seconds = item.get("total_in_seconds")?.as_n().ok()?.parse().ok()?;
         let created_at = item
             .get("created_at")?

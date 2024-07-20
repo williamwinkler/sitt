@@ -1819,7 +1819,6 @@ dependencies = [
  "async-trait",
  "aws-config",
  "aws-sdk-dynamodb",
- "aws-smithy-runtime-api",
  "chrono",
  "dotenv",
  "rocket",

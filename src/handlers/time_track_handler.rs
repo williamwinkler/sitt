@@ -6,7 +6,14 @@ use crate::{
     services::time_track_service::{TimeTrackError, TimeTrackService},
     User,
 };
-use rocket::{http::Status, post, response::status, routes, serde::json::Json, Route, State};
+use rocket::{
+    http::Status,
+    post,
+    response::status::{self, BadRequest},
+    routes,
+    serde::json::Json,
+    Route, State,
+};
 
 pub fn routes() -> Vec<Route> {
     routes![start, stop]
@@ -27,6 +34,12 @@ pub async fn start(
         Err(err) => match err {
             TimeTrackError::NotFound => Err(status::Custom(
                 Status::NotFound,
+                Json(ErrorResponse {
+                    error_mesage: err.to_string(),
+                }),
+            )),
+            TimeTrackError::AlreadyTrackingTime(_) => Err(status::Custom(
+                Status::BadRequest,
                 Json(ErrorResponse {
                     error_mesage: err.to_string(),
                 }),
@@ -59,6 +72,12 @@ pub async fn stop(
         Err(err) => match err {
             TimeTrackError::NotFound => Err(status::Custom(
                 Status::NotFound,
+                Json(ErrorResponse {
+                    error_mesage: err.to_string(),
+                }),
+            )),
+            TimeTrackError::NoInProgressTimeTracking(_) => Err(status::Custom(
+                Status::BadRequest,
                 Json(ErrorResponse {
                     error_mesage: err.to_string(),
                 }),

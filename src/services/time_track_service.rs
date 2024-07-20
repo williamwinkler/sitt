@@ -28,10 +28,6 @@ impl From<DbError> for TimeTrackError {
     fn from(error: DbError) -> Self {
         match error {
             DbError::NotFound => TimeTrackError::NotFound,
-            DbError::AlreadyExists { key, value } => TimeTrackError::Unknown(format!(
-                "Key '{}' already exists with value '{}'",
-                key, value
-            )),
             DbError::Convertion { table, id } => TimeTrackError::Unknown(format!(
                 "Conversion error in table '{}' for id '{}'",
                 table, id
@@ -75,12 +71,9 @@ impl TimeTrackService {
                 project.name.to_string(),
             ));
         }
-
-        project.status = ProjectStatus::ACTIVE;
-        project.modified_at = Some(Utc::now());
-        project.modified_by = Some(user.name.to_string());
-
+        
         // Update the project
+        project.status = ProjectStatus::ACTIVE;
         self.project_service.update(&mut project, user).await?;
 
         let time_track = TimeTrack::new(project_id);
