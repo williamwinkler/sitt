@@ -62,10 +62,10 @@ impl TimeTrackService {
 
     pub async fn start(
         &self,
-        project_id: &str,
         user: &User,
+        project_id: &str,
     ) -> Result<(TimeTrack, String), TimeTrackError> {
-        let mut project = self.project_service.get(project_id, &user).await?;
+        let mut project = self.project_service.get(user, project_id).await?;
 
         if project.status != ProjectStatus::Inactive {
             return Err(TimeTrackError::AlreadyTrackingTime(
@@ -75,9 +75,9 @@ impl TimeTrackService {
 
         // Update the project
         project.status = ProjectStatus::Active;
-        self.project_service.update(&mut project, user).await?;
+        self.project_service.update(user, &mut project).await?;
 
-        let time_track = TimeTrack::new(project_id);
+        let time_track = TimeTrack::new(project_id, user);
         self.repository.create(&time_track).await?;
 
         Ok((time_track, project.name))
@@ -85,10 +85,10 @@ impl TimeTrackService {
 
     pub async fn stop(
         &self,
-        project_id: &str,
         user: &User,
+        project_id: &str,
     ) -> Result<(TimeTrack, String), TimeTrackError> {
-        let mut project = self.project_service.get(project_id, user).await?;
+        let mut project = self.project_service.get(user, project_id,).await?;
 
         if project.status != ProjectStatus::Active {
             return Err(TimeTrackError::NoInProgressTimeTracking(
@@ -120,25 +120,26 @@ impl TimeTrackService {
             project.total_in_seconds += duration.num_seconds();
         }
 
-        self.project_service.update(&mut project, user).await?;
+        self.project_service.update(user, &mut project,).await?;
 
         Ok((time_track, project.name))
     }
 
-    pub async fn get_all(&self, project_id: &str) -> Result<Vec<TimeTrack>, TimeTrackError> {
-        let mut time_track_items = self.repository.get_all(project_id).await?;
+    pub async fn get_all(&self, user: &User, project_id: &str) -> Result<(Vec<TimeTrack>, String), TimeTrackError> {
+        let project = self.project_service.get(user, project_id).await?;
+        let mut time_track_items = self.repository.get_all(project_id, user).await?;
 
         // Sort the items by started_at in descending order (newest first)
         time_track_items.sort_by(|a, b| b.started_at.cmp(&a.started_at));
 
-        Ok(time_track_items)
+        Ok((time_track_items, project.name))
     }
 
-    pub async fn delete_for_project(&self, project_id: &str) -> Result<(), TimeTrackError> {
-        let time_track_items = self.get_all(project_id).await?;
+    pub async fn delete_for_project(&self, user: &User, project_id: &str) -> Result<(), TimeTrackError> {
+        let time_track_items = self.get_all(user, project_id).await?;
 
         // If there are no time track items, return OK
-        if time_track_items.is_empty() {
+        if time_track_items.0.is_empty() {
             return Ok(())
         }
 

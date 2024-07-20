@@ -60,7 +60,7 @@ impl ProjectService {
 
     pub async fn create(&self, project_name: &str, user: &User) -> Result<(Project), ProjectError> {
         // Get existing projects for user
-        let existing_projects = self.repository.get_all(&user.name).await?;
+        let existing_projects = self.repository.get_all(&user).await?;
 
         // Each user can maximum have 15 projects
         if existing_projects.len() >= 15 {
@@ -82,7 +82,7 @@ impl ProjectService {
     }
 
     pub async fn get_all(&self, user: &User) -> Result<Vec<Project>, ProjectError> {
-        let mut projects = self.repository.get_all(&user.name).await?;
+        let mut projects = self.repository.get_all(&user).await?;
 
         // Sort the projects, so the ACTIVE projects occur first in the list
         projects.sort_by(|a, b| match (&a.status, &b.status) {
@@ -98,23 +98,23 @@ impl ProjectService {
         Ok(projects)
     }
 
-    pub async fn get(&self, project_id: &str, user: &User) -> Result<Project, ProjectError> {
-        let project = self.repository.get(project_id, &user.name).await?;
+    pub async fn get(&self, user: &User, project_id: &str) -> Result<Project, ProjectError> {
+        let project = self.repository.get(user, project_id).await?;
 
         Ok(project)
     }
 
     pub async fn update(
         &self,
-        project: &mut Project,
         user: &User,
+        project: &mut Project,
     ) -> Result<Project, ProjectError> {
-        let project = self.repository.update(project, user).await?;
+        let project = self.repository.update(user, project).await?;
 
         Ok(project)
     }
 
-    pub async fn delete(&self, project_id: &str, user: &User) -> Result<(), ProjectError> {
+    pub async fn delete(&self, user: &User, project_id: &str) -> Result<(), ProjectError> {
         let time_track_service_guard = self.time_track_service.read().await;
 
         // Check if the time_track_service is set
@@ -124,7 +124,7 @@ impl ProjectService {
         };
 
         // First, execute the time track deletion
-        match time_track_service.delete_for_project(project_id).await {
+        match time_track_service.delete_for_project(user, project_id).await {
             Ok(_) => (),
             Err(err) => {
                 return Err(ProjectError::Unknown(format!(
@@ -135,7 +135,7 @@ impl ProjectService {
         }
 
         // Then, execute the project deletion
-        let result = self.repository.delete(project_id, &user.name).await;
+        let result = self.repository.delete(user, project_id).await;
 
         match result {
             Ok(_) => Ok(()),

@@ -66,8 +66,8 @@ impl TimeTrackRepository {
             .attribute_definitions(attr_sort)
             .key_schema(keyschema_sort)
             .send()
-            .await
-            .map_err(|err| println!("{:#?}", err));
+            .await;
+        //.map_err(|err| println!("{:#?}", err));
 
         Self { db }
     }
@@ -134,14 +134,25 @@ impl TimeTrackRepository {
         }
     }
 
-    pub async fn get_all(&self, project_id: &str) -> Result<Vec<TimeTrack>, DbError> {
+    pub async fn get_all(&self, project_id: &str, user: &User) -> Result<Vec<TimeTrack>, DbError> {
+        let mut expression_attribute_values = HashMap::new();
+        expression_attribute_values.insert(
+            ":project_id".to_string(),
+            AttributeValue::S(project_id.to_string()),
+        );
+        expression_attribute_values.insert(
+            ":created_by".to_string(),
+            AttributeValue::S(user.name.to_string()),
+        );
+
         let result = self
             .db
             .client
             .query()
             .table_name(TABLE_NAME)
-            .key_condition_expression("project_id  = :project_id")
-            .expression_attribute_values(":project_id", AttributeValue::S(project_id.to_string()))
+            .key_condition_expression("project_id = :project_id")
+            .filter_expression("created_by = :created_by")
+            .set_expression_attribute_values(Some(expression_attribute_values))
             .send()
             .await;
 
@@ -169,7 +180,10 @@ impl TimeTrackRepository {
                 }
                 None => Err(DbError::NotFound),
             },
-            Err(err) => Err(DbError::Unknown(format!("{}: {:#?}", TABLE_NAME, err))),
+            Err(err) => Err(DbError::Unknown(format!(
+                "{}: get_all(): {:#?}",
+                TABLE_NAME, err
+            ))),
         }
     }
 
@@ -297,6 +311,10 @@ impl TimeTrackRepository {
                 AttributeValue::S(stopped_at.to_string()),
             );
         }
+        item.insert(
+            "created_by".to_string(),
+            AttributeValue::S(tt.created_by.to_string()),
+        );
 
         item
     }
@@ -316,6 +334,7 @@ impl TimeTrackRepository {
             .ok()?
             .parse::<DateTime<Utc>>()
             .ok()?;
+        let created_by = item.get("created_by")?.as_s().ok()?.to_string();
 
         let mut stopped_at: Option<DateTime<Utc>> = None;
         if let Some(stopped_at_attr) = item.get("stopped_at") {
@@ -328,6 +347,7 @@ impl TimeTrackRepository {
             status,
             started_at,
             stopped_at,
+            created_by,
         };
 
         Some(time_track)

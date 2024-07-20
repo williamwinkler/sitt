@@ -85,7 +85,7 @@ pub async fn get(
 ) -> Result<Json<ProjectDto>, status::Custom<Json<ErrorResponse>>> {
     let project_id = project_id.0.to_string();
 
-    match project_service.get(&project_id, &user).await {
+    match project_service.get(user, &project_id).await {
         Ok(project) => Ok(Json(ProjectDto::from(project))),
         Err(err) => match err {
             ProjectError::NotFound => Err(status::Custom(
@@ -115,7 +115,7 @@ pub async fn delete(
 ) -> Result<status::NoContent, status::Custom<Json<ErrorResponse>>> {
     let project_id = project_id.0.to_string();
 
-    match project_service.delete(&project_id, &user).await {
+    match project_service.delete(user, &project_id).await {
         Ok(_) => Ok(status::NoContent),
         Err(err) => match err {
             ProjectError::NotFound => Err(status::Custom(

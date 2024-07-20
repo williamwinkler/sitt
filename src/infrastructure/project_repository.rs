@@ -52,8 +52,8 @@ impl ProjectRepository {
             .attribute_definitions(attr_sort)
             .key_schema(keyschema_sort)
             .send()
-            .await
-            .map_err(|err| println!("{:#?}", err));
+            .await;
+        // .map_err(|err| println!("{:#?}", err));
 
         Self { db }
     }
@@ -72,13 +72,13 @@ impl ProjectRepository {
             .map_err(|err| DbError::Unknown(format!("{}: {:#?}", TABLE_NAME, err)))
     }
 
-    pub async fn get(&self, project_id: &str, created_by: &str) -> Result<Project, DbError> {
+    pub async fn get(&self, user: &User, project_id: &str) -> Result<Project, DbError> {
         let result = self
             .db
             .client
             .get_item()
             .table_name(TABLE_NAME)
-            .key("created_by", AttributeValue::S(created_by.to_string()))
+            .key("created_by", AttributeValue::S(user.name.to_string()))
             .key("id", AttributeValue::S(project_id.to_string()))
             .send()
             .await;
@@ -101,14 +101,14 @@ impl ProjectRepository {
         }
     }
 
-    pub async fn get_all(&self, created_by: &str) -> Result<Vec<Project>, DbError> {
+    pub async fn get_all(&self, user: &User) -> Result<Vec<Project>, DbError> {
         let result = self
             .db
             .client
             .query()
             .table_name(TABLE_NAME)
             .key_condition_expression("created_by = :created_by")
-            .expression_attribute_values(":created_by", AttributeValue::S(created_by.to_string()))
+            .expression_attribute_values(":created_by", AttributeValue::S(user.name.to_string()))
             .send()
             .await;
 
@@ -140,7 +140,7 @@ impl ProjectRepository {
         }
     }
 
-    pub async fn update(&self, project: &mut Project, user: &User) -> Result<Project, DbError> {
+    pub async fn update(&self, user: &User, project: &mut Project) -> Result<Project, DbError> {
         // Update modified at & by
         project.modified_at = Some(Utc::now());
         project.modified_by = Some(user.name.to_string());
@@ -212,13 +212,13 @@ impl ProjectRepository {
         }
     }
 
-    pub async fn delete(&self, project_id: &str, created_by: &str) -> Result<(), DbError> {
+    pub async fn delete(&self, user: &User, project_id: &str) -> Result<(), DbError> {
         let result = self
             .db
             .client
             .delete_item()
             .table_name(TABLE_NAME)
-            .key("created_by", AttributeValue::S(created_by.to_string()))
+            .key("created_by", AttributeValue::S(user.name.to_string()))
             .key("id", AttributeValue::S(project_id.to_string()))
             .return_values(aws_sdk_dynamodb::types::ReturnValue::AllOld)
             .send()

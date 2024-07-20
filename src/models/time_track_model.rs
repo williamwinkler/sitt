@@ -4,6 +4,8 @@ use serde::Serialize;
 use std::str::FromStr;
 use uuid::Uuid;
 
+use crate::User;
+
 #[derive(Debug, Serialize)]
 pub enum TimeTrackStatus {
     #[serde(rename(serialize = "IN_PROGRESS"))]
@@ -46,16 +48,18 @@ pub struct TimeTrack {
     pub started_at: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stopped_at: Option<DateTime<Utc>>,
+    pub created_by: String,
 }
 
 impl TimeTrack {
-    pub fn new(project_id: &str) -> Self {
+    pub fn new(project_id: &str, user: &User) -> Self {
         TimeTrack {
             id: Uuid::new_v4().to_string(),
             project_id: project_id.to_string(),
             status: TimeTrackStatus::InProgress,
             started_at: Utc::now(),
             stopped_at: None,
+            created_by: user.name.to_string(),
         }
     }
 }
