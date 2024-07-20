@@ -1,12 +1,11 @@
+use tokio::sync::RwLock;
+
 use crate::{
     infrastructure::{database::DbError, project_repository::ProjectRepository},
     models::project_model::{Project, ProjectStatus},
     User,
 };
-use std::{
-    cmp::Ordering,
-    sync::{Arc, Mutex},
-};
+use std::{cmp::Ordering, sync::Arc};
 
 use super::time_track_service::TimeTrackService;
 
@@ -40,7 +39,7 @@ impl From<DbError> for ProjectError {
 #[derive(Debug)]
 pub struct ProjectService {
     repository: Arc<ProjectRepository>,
-    time_track_service: Mutex<Option<Arc<TimeTrackService>>>,
+    time_track_service: RwLock<Option<Arc<TimeTrackService>>>,
 }
 
 impl ProjectService {
@@ -50,12 +49,12 @@ impl ProjectService {
     ) -> Self {
         ProjectService {
             repository,
-            time_track_service: Mutex::new(time_track_service),
+            time_track_service: RwLock::new(time_track_service),
         }
     }
 
-    pub fn set_time_track_service(&mut self, time_track_service: Arc<TimeTrackService>) {
-        let mut service = self.time_track_service.lock().unwrap();
+    pub async fn set_time_track_service(&self, time_track_service: Arc<TimeTrackService>) {
+        let mut service = self.time_track_service.write().await;
         *service = Some(time_track_service);
     }
 
@@ -116,26 +115,37 @@ impl ProjectService {
     }
 
     pub async fn delete(&self, project_id: &str, user: &User) -> Result<(), ProjectError> {
-        let time_track_service_guard = self.time_track_service.lock().unwrap();
+        let time_track_service_guard = self.time_track_service.read().await;
 
-        if time_track_service_guard.is_none() {
-            return Err(ProjectError::NoTimeTrackService);
-        }
-
-        let time_track_service = time_track_service_guard.as_ref().unwrap();
+        // Check if the time_track_service is set
+        let time_track_service = match time_track_service_guard.as_ref() {
+            Some(service) => service,
+            None => return Err(ProjectError::NoTimeTrackService),
+        };
 
         // First, execute the time track deletion
         match time_track_service.delete_for_project(project_id).await {
             Ok(_) => (),
-            Err(err) => return Err(ProjectError::Unknown(format!("{:#?}", err))),
+            Err(err) => {
+                return Err(ProjectError::Unknown(format!(
+                    "ProjectService.delete() delete time track items: {:#?}",
+                    err
+                )))
+            }
         }
 
         // Then, execute the project deletion
-        self.repository
-            .delete(project_id, &user.name)
-            .await
-            .map_err(|err| ProjectError::Unknown(format!("{:#?}", err)))?;
+        let result = self.repository.delete(project_id, &user.name).await;
 
-        Ok(())
+        match result {
+            Ok(_) => Ok(()),
+            Err(err) => match err {
+                DbError::NotFound => Err(ProjectError::NotFound),
+                _ => Err(ProjectError::Unknown(format!(
+                    "ProjectService.delete() delete project: {:#?}",
+                    err
+                ))),
+            },
+        }
     }
 }

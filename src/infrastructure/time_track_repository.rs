@@ -241,28 +241,30 @@ impl TimeTrackRepository {
                 if let Some(items) = output.items {
                     for item in items {
                         // Delete each time track item, one by one
-                        // TODO: Use batching
-                        if let Some(key) = item.get("project_id") {
-                            let delete_result = self
-                                .db
-                                .client
-                                .delete_item()
-                                .table_name(TABLE_NAME)
-                                .key("project_id", key.clone())
-                                .send()
-                                .await;
+                        let item_project_id = item
+                            .get("project_id")
+                            .expect("There was no project_id on time track item");
+                        let item_id = item.get("id").expect("There was no id on time track item");
 
-                            if let Err(err) = delete_result {
-                                return Err(DbError::Unknown(format!(
-                                    "{}, delete_for_project() delete one: {:#?}",
-                                    TABLE_NAME, err
-                                )));
-                            }
+                        let delete_result = self
+                            .db
+                            .client
+                            .delete_item()
+                            .table_name(TABLE_NAME)
+                            .key("project_id", item_project_id.clone())
+                            .key("id", item_id.clone())
+                            .send()
+                            .await;
+
+                        if let Err(err) = delete_result {
+                            return Err(DbError::Unknown(format!(
+                                "{}, delete_for_project() delete one: {:#?}",
+                                TABLE_NAME, err
+                            )));
                         }
                     }
                     Ok(())
                 } else {
-                    // No items found, nothing to delete
                     Ok(())
                 }
             }

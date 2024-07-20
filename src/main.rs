@@ -38,7 +38,9 @@ async fn main() -> Result<(), rocket::Error> {
         project_service.clone(),
     ));
 
-    project_service.set_time_track_service(time_track_service.clone());
+    project_service
+        .set_time_track_service(time_track_service.clone())
+        .await;
 
     let _rocket = rocket::build()
         .manage(user)
@@ -53,8 +55,3 @@ async fn main() -> Result<(), rocket::Error> {
 
     Ok(())
 }
-
-// let time_track_service = services::time_track_service::TimeTrackService::new(
-//     time_track_repository.clone(),
-//     project_service.clone(),
-// );

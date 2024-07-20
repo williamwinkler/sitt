@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::{
     dtos::{common_dtos::ErrorResponse, time_track_dtos::TimeTrackDto},
     validation::valid_uuid::ValidateUuid,
@@ -6,14 +8,7 @@ use crate::{
     services::time_track_service::{TimeTrackError, TimeTrackService},
     User,
 };
-use rocket::{
-    http::Status,
-    post,
-    response::status::{self, BadRequest},
-    routes,
-    serde::json::Json,
-    Route, State,
-};
+use rocket::{http::Status, post, response::status, routes, serde::json::Json, Route, State};
 
 pub fn routes() -> Vec<Route> {
     routes![start, stop]
@@ -21,7 +16,7 @@ pub fn routes() -> Vec<Route> {
 
 #[post("/timetrack/<project_id>/start")]
 pub async fn start(
-    time_track_service: &State<TimeTrackService>,
+    time_track_service: &State<Arc<TimeTrackService>>,
     user: &State<User>,
     project_id: ValidateUuid,
 ) -> Result<Json<TimeTrackDto>, status::Custom<Json<ErrorResponse>>> {
@@ -59,7 +54,7 @@ pub async fn start(
 
 #[post("/timetrack/<project_id>/stop")]
 pub async fn stop(
-    time_track_service: &State<TimeTrackService>,
+    time_track_service: &State<Arc<TimeTrackService>>,
     user: &State<User>,
     project_id: ValidateUuid,
 ) -> Result<Json<TimeTrackDto>, status::Custom<Json<ErrorResponse>>> {
