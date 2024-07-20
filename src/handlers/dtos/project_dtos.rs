@@ -61,7 +61,7 @@ impl<'r> FromData<'r> for NewProjectDto {
         Outcome::Success(new_project_dto)
     }
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct ProjectDto {
     pub project_id: String,
     pub name: String,

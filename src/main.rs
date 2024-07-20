@@ -31,12 +31,15 @@ async fn main() -> Result<(), rocket::Error> {
     // Services
     let project_service = Arc::new(services::project_service::ProjectService::new(
         project_repository.clone(),
+        None,
     ));
-    let time_track_service = services::time_track_service::TimeTrackService::new(
+    let time_track_service = Arc::new(services::time_track_service::TimeTrackService::new(
         time_track_repository.clone(),
         project_service.clone(),
-    );
-    
+    ));
+
+    project_service.set_time_track_service(time_track_service.clone());
+
     let _rocket = rocket::build()
         .manage(user)
         .manage(project_service)

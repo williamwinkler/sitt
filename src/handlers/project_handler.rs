@@ -43,7 +43,7 @@ pub async fn create(
                 }),
             )),
             _ => {
-                println!("{}", err.to_string());
+                eprintln!("{}", err.to_string());
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
@@ -66,7 +66,7 @@ pub async fn get_all(
             Ok(Json(project_dtos))
         }
         Err(err) => {
-            println!("{}", err.to_string());
+            eprintln!("{}", err.to_string());
             Err(status::Custom(
                 Status::InternalServerError,
                 Json(ErrorResponse {
@@ -95,7 +95,7 @@ pub async fn get(
                 }),
             )),
             _ => {
-                println!("{}", err.to_string());
+                eprintln!("{}", err.to_string());
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
@@ -125,7 +125,7 @@ pub async fn delete(
                 }),
             )),
             _ => {
-                println!("{}", err.to_string());
+                eprintln!("{}", err.to_string());
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {

@@ -16,7 +16,7 @@ pub enum TimeTrackError {
     NotFound,
     #[error("Project not found")]
     ProjectNotFound,
-    #[error("No time tracking in is progress for project '{0}'.")]
+    #[error("No time tracking is progress for project '{0}'.")]
     NoInProgressTimeTracking(String),
     #[error("You are already tracking time on project '{0}'")]
     AlreadyTrackingTime(String),
@@ -46,6 +46,7 @@ impl From<ProjectError> for TimeTrackError {
     }
 }
 
+#[derive(Debug)]
 pub struct TimeTrackService {
     repository: Arc<TimeTrackRepository>,
     project_service: Arc<ProjectService>,
@@ -66,14 +67,14 @@ impl TimeTrackService {
     ) -> Result<(TimeTrack, String), TimeTrackError> {
         let mut project = self.project_service.get(project_id, &user).await?;
 
-        if project.status != ProjectStatus::INACTIVE {
+        if project.status != ProjectStatus::Inactive {
             return Err(TimeTrackError::AlreadyTrackingTime(
                 project.name.to_string(),
             ));
         }
-        
+
         // Update the project
-        project.status = ProjectStatus::ACTIVE;
+        project.status = ProjectStatus::Active;
         self.project_service.update(&mut project, user).await?;
 
         let time_track = TimeTrack::new(project_id);
@@ -89,22 +90,31 @@ impl TimeTrackService {
     ) -> Result<(TimeTrack, String), TimeTrackError> {
         let mut project = self.project_service.get(project_id, user).await?;
 
-        if project.status != ProjectStatus::ACTIVE {
+        if project.status != ProjectStatus::Active {
             return Err(TimeTrackError::NoInProgressTimeTracking(
                 project.name.to_string(),
             ));
         }
 
         // Get the IN_PROGRESS time_track for the project
-        let mut time_track = self.repository.get_in_progress(project_id).await?;
+        let result = self.repository.get_in_progress(project_id).await;
+        let mut time_track = match result {
+            Ok(time_track) => time_track,
+            Err(err) => match err {
+                DbError::NotFound => {
+                    return Err(TimeTrackError::NoInProgressTimeTracking(project.name))
+                }
+                _ => return Err(TimeTrackError::Unknown(format!("{:#?}", err))),
+            },
+        };
 
         // Update time track item to be finished
         time_track.stopped_at = Some(Utc::now());
-        time_track.status = TimeTrackStatus::FINISHED;
+        time_track.status = TimeTrackStatus::Finished;
         self.repository.update(&time_track).await?;
 
         // Update the project to be INACTIVE and add duration to total_in_seconds
-        project.status = ProjectStatus::INACTIVE;
+        project.status = ProjectStatus::Inactive;
         if let Some(stopped_at) = time_track.stopped_at {
             let duration = stopped_at - time_track.started_at;
             project.total_in_seconds += duration.num_seconds();
@@ -113,5 +123,27 @@ impl TimeTrackService {
         self.project_service.update(&mut project, user).await?;
 
         Ok((time_track, project.name))
+    }
+
+    pub async fn get_all(&self, project_id: &str) -> Result<Vec<TimeTrack>, TimeTrackError> {
+        let mut time_track_items = self.repository.get_all(project_id).await?;
+
+        // Sort the items by started_at in descending order (newest first)
+        time_track_items.sort_by(|a, b| b.started_at.cmp(&a.started_at));
+
+        Ok(time_track_items)
+    }
+
+    pub async fn delete_for_project(&self, project_id: &str) -> Result<(), TimeTrackError> {
+        let time_track_items = self.get_all(project_id).await?;
+
+        // If there are no time track items, return OK
+        if time_track_items.is_empty() {
+            return Ok(())
+        }
+
+        let result = self.repository.delete_for_project(project_id).await?;
+
+        Ok(result)
     }
 }

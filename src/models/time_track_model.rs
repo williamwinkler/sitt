@@ -1,35 +1,44 @@
-use core::fmt;
-
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use core::fmt;
+use serde::Serialize;
+use std::str::FromStr;
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub enum TimeTrackStatus {
-    IN_PROGRESS,
-    FINISHED,
+    #[serde(rename(serialize = "IN_PROGRESS"))]
+    InProgress,
+    #[serde(rename(serialize = "FINISHED"))]
+    Finished,
 }
 
 impl fmt::Display for TimeTrackStatus {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            TimeTrackStatus::IN_PROGRESS => write!(f, "IN_PROGRESS"),
-            TimeTrackStatus::FINISHED => write!(f, "FINISHED"),
+            TimeTrackStatus::InProgress => write!(f, "IN_PROGRESS"),
+            TimeTrackStatus::Finished => write!(f, "FINISHED"),
         }
     }
 }
 
-impl TimeTrackStatus {
-    pub fn from_str(s: &str) -> Option<Self> {
+#[derive(thiserror::Error, Debug)]
+pub enum ParseTimeTrackingStatusError {
+    #[error("Invalid time tracking status")]
+    InvalidStatus,
+}
+
+impl FromStr for TimeTrackStatus {
+    type Err = ParseTimeTrackingStatusError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "IN_PROGRESS" => Some(TimeTrackStatus::IN_PROGRESS),
-            "FINISHED" => Some(TimeTrackStatus::FINISHED),
-            _ => None,
+            "IN_PROGRESS" => Ok(TimeTrackStatus::InProgress),
+            "FINISHED" => Ok(TimeTrackStatus::Finished),
+            _ => Err(ParseTimeTrackingStatusError::InvalidStatus),
         }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct TimeTrack {
     pub id: String,
     pub project_id: String,
@@ -44,7 +53,7 @@ impl TimeTrack {
         TimeTrack {
             id: Uuid::new_v4().to_string(),
             project_id: project_id.to_string(),
-            status: TimeTrackStatus::IN_PROGRESS,
+            status: TimeTrackStatus::InProgress,
             started_at: Utc::now(),
             stopped_at: None,
         }

@@ -3,7 +3,12 @@ use crate::{
     models::project_model::{Project, ProjectStatus},
     User,
 };
-use std::{cmp::Ordering, sync::Arc};
+use std::{
+    cmp::Ordering,
+    sync::{Arc, Mutex},
+};
+
+use super::time_track_service::TimeTrackService;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ProjectError {
@@ -13,6 +18,8 @@ pub enum ProjectError {
     TooManyProjects,
     #[error("Project exists with same name: {0}")]
     ProjectExistsWithSameName(String),
+    #[error("Can not delete project, when there is no time_tracking_service")]
+    NoTimeTrackService,
     #[error("Unknown error: {0}")]
     Unknown(String),
 }
@@ -33,11 +40,23 @@ impl From<DbError> for ProjectError {
 #[derive(Debug)]
 pub struct ProjectService {
     repository: Arc<ProjectRepository>,
+    time_track_service: Mutex<Option<Arc<TimeTrackService>>>,
 }
 
 impl ProjectService {
-    pub fn new(repository: Arc<ProjectRepository>) -> Self {
-        ProjectService { repository }
+    pub fn new(
+        repository: Arc<ProjectRepository>,
+        time_track_service: Option<Arc<TimeTrackService>>,
+    ) -> Self {
+        ProjectService {
+            repository,
+            time_track_service: Mutex::new(time_track_service),
+        }
+    }
+
+    pub fn set_time_track_service(&mut self, time_track_service: Arc<TimeTrackService>) {
+        let mut service = self.time_track_service.lock().unwrap();
+        *service = Some(time_track_service);
     }
 
     pub async fn create(&self, project_name: &str, user: &User) -> Result<(Project), ProjectError> {
@@ -68,8 +87,8 @@ impl ProjectService {
 
         // Sort the projects, so the ACTIVE projects occur first in the list
         projects.sort_by(|a, b| match (&a.status, &b.status) {
-            (ProjectStatus::ACTIVE, ProjectStatus::INACTIVE) => Ordering::Less,
-            (ProjectStatus::INACTIVE, ProjectStatus::ACTIVE) => Ordering::Greater,
+            (ProjectStatus::Active, ProjectStatus::Inactive) => Ordering::Less,
+            (ProjectStatus::Inactive, ProjectStatus::Active) => Ordering::Greater,
             _ => {
                 let a_date = a.modified_at.unwrap_or(a.created_at);
                 let b_date = b.modified_at.unwrap_or(b.created_at);
@@ -97,8 +116,26 @@ impl ProjectService {
     }
 
     pub async fn delete(&self, project_id: &str, user: &User) -> Result<(), ProjectError> {
-        let result = self.repository.delete(project_id, &user.name).await?;
+        let time_track_service_guard = self.time_track_service.lock().unwrap();
 
-        Ok(result)
+        if time_track_service_guard.is_none() {
+            return Err(ProjectError::NoTimeTrackService);
+        }
+
+        let time_track_service = time_track_service_guard.as_ref().unwrap();
+
+        // First, execute the time track deletion
+        match time_track_service.delete_for_project(project_id).await {
+            Ok(_) => (),
+            Err(err) => return Err(ProjectError::Unknown(format!("{:#?}", err))),
+        }
+
+        // Then, execute the project deletion
+        self.repository
+            .delete(project_id, &user.name)
+            .await
+            .map_err(|err| ProjectError::Unknown(format!("{:#?}", err)))?;
+
+        Ok(())
     }
 }

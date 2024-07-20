@@ -45,7 +45,7 @@ pub async fn start(
                 }),
             )),
             _ => {
-                println!("{}", err.to_string());
+                eprintln!("{}", err.to_string());
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
@@ -83,7 +83,7 @@ pub async fn stop(
                 }),
             )),
             _ => {
-                println!("{}", err.to_string());
+                eprintln!("{}", err.to_string());
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {

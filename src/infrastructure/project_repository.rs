@@ -59,7 +59,7 @@ impl ProjectRepository {
     }
 
     pub async fn create(&self, project: &Project) -> Result<(), DbError> {
-        let item = ProjectRepository::convert_project_to_item(project, false);
+        let item = ProjectRepository::convert_project_to_item(project);
 
         self.db
             .client
@@ -102,7 +102,7 @@ impl ProjectRepository {
     }
 
     pub async fn get_all(&self, created_by: &str) -> Result<Vec<Project>, DbError> {
-        let results = self
+        let result = self
             .db
             .client
             .query()
@@ -112,8 +112,8 @@ impl ProjectRepository {
             .send()
             .await;
 
-        match results {
-            Ok(results) => match results.items {
+        match result {
+            Ok(items) => match items.items {
                 Some(items) => {
                     let mut projects = Vec::new();
                     for item in items.iter() {
@@ -233,31 +233,17 @@ impl ProjectRepository {
         }
     }
 
-    fn convert_project_to_item(
-        project: &Project,
-        is_update: bool,
-    ) -> HashMap<String, AttributeValue> {
+    fn convert_project_to_item(project: &Project) -> HashMap<String, AttributeValue> {
         let mut item = HashMap::new();
 
-        let mut key_id = String::from("id");
-        let mut key_project_name = String::from("project_name");
-        let mut key_status = String::from("project_status");
-        let mut key_total_in_seconds = String::from("total_in_seconds");
-        let mut key_created_at = String::from("created_at");
-        let mut key_created_by = String::from("created_by");
-        let mut key_modified_at = String::from("modified_at");
-        let mut key_modified_by = String::from("modified_by");
-
-        if is_update {
-            key_id = format!(":{}", key_id);
-            key_project_name = format!(":{}", key_project_name);
-            key_status = format!(":{}", key_status);
-            key_total_in_seconds = format!(":{}", key_total_in_seconds);
-            key_created_at = format!(":{}", key_created_at);
-            key_created_by = format!(":{}", key_created_by);
-            key_modified_at = format!(":{}", key_modified_at);
-            key_modified_by = format!(":{}", key_modified_by);
-        }
+        let key_id = String::from("id");
+        let key_project_name = String::from("project_name");
+        let key_status = String::from("project_status");
+        let key_total_in_seconds = String::from("total_in_seconds");
+        let key_created_at = String::from("created_at");
+        let key_created_by = String::from("created_by");
+        let key_modified_at = String::from("modified_at");
+        let key_modified_by = String::from("modified_by");
 
         item.insert(key_id, AttributeValue::S(project.id.to_string()));
         item.insert(
@@ -292,13 +278,7 @@ impl ProjectRepository {
     fn convert_item_to_project(item: &HashMap<String, AttributeValue>) -> Option<Project> {
         let id = item.get("id")?.as_s().ok()?.to_string();
         let name = item.get("project_name")?.as_s().ok()?.to_string();
-        let status = item
-            .get("project_status")?
-            .as_s()
-            .ok()?
-            .to_string()
-            .parse()
-            .ok()?;
+        let status = item.get("project_status")?.as_s().ok()?.parse().ok()?;
         let total_in_seconds = item.get("total_in_seconds")?.as_n().ok()?.parse().ok()?;
         let created_at = item
             .get("created_at")?

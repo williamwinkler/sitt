@@ -1,9 +1,8 @@
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-
 use crate::models::time_track_model::{TimeTrack, TimeTrackStatus};
+use chrono::{DateTime, Utc};
+use serde::Serialize;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct TimeTrackDto {
     pub time_track_id: String,
     pub project_id: String,
