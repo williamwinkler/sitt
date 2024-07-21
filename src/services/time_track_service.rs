@@ -169,6 +169,11 @@ impl TimeTrackService {
         Ok(time_track)
     }
 
+    pub async  fn delete(&self, user: &User, project_id: String, time_track_id: String) -> Result<(), TimeTrackError> {
+        let result = self.repository.delete(user, project_id, time_track_id).await?;
+        Ok(result)
+    }
+
     pub async fn delete_for_project(
         &self,
         user: &User,

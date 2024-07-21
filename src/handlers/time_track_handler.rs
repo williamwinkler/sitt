@@ -2,12 +2,17 @@ use super::{
     dtos::{common_dtos::ErrorResponse, time_track_dtos::TimeTrackDto},
     validation::valid_uuid::ValidateUuid,
 };
-use crate::{services::time_track_service::{TimeTrackError, TimeTrackService}, User};
-use rocket::{get, http::Status, post, response::status, routes, serde::json::Json, Route, State};
+use crate::{
+    services::time_track_service::{TimeTrackError, TimeTrackService},
+    User,
+};
+use rocket::{
+    delete, get, http::Status, post, response::status, routes, serde::json::Json, Route, State,
+};
 use std::sync::Arc;
 
 pub fn routes() -> Vec<Route> {
-    routes![start, stop, get]
+    routes![start, stop, get, delete]
 }
 
 #[post("/timetrack/<project_id>/start")]
@@ -105,6 +110,43 @@ pub async fn get(
         }
         Err(err) => match err {
             TimeTrackError::ProjectNotFound => Err(status::Custom(
+                Status::NotFound,
+                Json(ErrorResponse {
+                    error_mesage: err.to_string(),
+                }),
+            )),
+            _ => {
+                eprintln!("{}", err.to_string());
+                Err(status::Custom(
+                    Status::InternalServerError,
+                    Json(ErrorResponse {
+                        error_mesage: String::from("An internal error occurred"),
+                    }),
+                ))
+            }
+        },
+    }
+}
+
+// TODO: update time_track -> should take started_at, stopped_at and it should recalculate the duration.
+
+#[delete["/timetrack/<project_id>/<time_track_id>"]]
+pub async fn delete(
+    time_track_service: &State<Arc<TimeTrackService>>,
+    user: &State<User>,
+    project_id: ValidateUuid,
+    time_track_id: ValidateUuid,
+) -> Result<status::NoContent, status::Custom<Json<ErrorResponse>>> {
+    let project_id = project_id.0.to_string();
+    let time_track_id = time_track_id.0.to_string();
+
+    match time_track_service
+        .delete(user, project_id, time_track_id)
+        .await
+    {
+        Ok(_) => Ok(status::NoContent),
+        Err(err) => match err {
+            TimeTrackError::NotFound => Err(status::Custom(
                 Status::NotFound,
                 Json(ErrorResponse {
                     error_mesage: err.to_string(),

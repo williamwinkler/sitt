@@ -1,13 +1,14 @@
 use super::database::{Database, DbError};
 use crate::{
     models::time_track_model::{TimeTrack, TimeTrackStatus},
+    services::time_track_service::TimeTrackError,
     User,
 };
-use aws_sdk_dynamodb::types::{
+use aws_sdk_dynamodb::{error::SdkError, operation::delete_item::DeleteItemError, types::{
     AttributeDefinition, AttributeValue, KeySchemaElement, KeyType, ScalarAttributeType,
-};
+}};
 use chrono::{DateTime, Utc};
-use humantime::{parse_duration, format_duration};
+use humantime::{format_duration, parse_duration};
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 #[derive(Debug)]
@@ -87,7 +88,11 @@ impl TimeTrackRepository {
             .map_err(|err| DbError::Unknown(format!("{}, create(): {:#?}", TABLE_NAME, err)))
     }
 
-    pub async fn get_in_progress(&self, user: &User, project_id: &str) -> Result<TimeTrack, DbError> {
+    pub async fn get_in_progress(
+        &self,
+        user: &User,
+        project_id: &str,
+    ) -> Result<TimeTrack, DbError> {
         let mut expression_attribute_values = HashMap::new();
         expression_attribute_values.insert(
             ":project_id".to_string(),
@@ -108,7 +113,9 @@ impl TimeTrackRepository {
             .query()
             .table_name(TABLE_NAME)
             .key_condition_expression("project_id = :project_id")
-            .filter_expression("time_tracking_status = :time_tracking_status AND created_by = :created_by")
+            .filter_expression(
+                "time_tracking_status = :time_tracking_status AND created_by = :created_by",
+            )
             .set_expression_attribute_values(Some(expression_attribute_values))
             .send()
             .await;
@@ -116,7 +123,6 @@ impl TimeTrackRepository {
         match result {
             Ok(output) => {
                 if let Some(items) = output.items {
-                    println!("{}", items.len());
                     if let Some(item) = items.get(0) {
                         match Self::convert_item_to_time_track(item) {
                             None => Err(DbError::Convertion {
@@ -242,6 +248,42 @@ impl TimeTrackRepository {
             .map_err(|err| DbError::Unknown(format!("{}, update(): {:#?}", TABLE_NAME, err)))
     }
 
+    pub async fn delete(
+        &self,
+        user: &User,
+        project_id: String,
+        time_track_id: String,
+    ) -> Result<(), DbError> {
+        let result = self
+            .db
+            .client
+            .delete_item()
+            .table_name(TABLE_NAME)
+            .key("project_id", AttributeValue::S(project_id))
+            .key("id", AttributeValue::S(time_track_id))
+            .condition_expression("created_by = :created_by")
+            .expression_attribute_values(":created_by", AttributeValue::S(user.name.clone()))
+            .return_values(aws_sdk_dynamodb::types::ReturnValue::AllOld)
+            .send()
+            .await;
+
+        match result {
+            Ok(item) => match item.attributes {
+                Some(_) => Ok(()),
+                None => Err(DbError::NotFound),
+            },
+            // If there is no time_track matching the expression dynamoDB throws this error => NotFound
+            Err(SdkError::ServiceError(err)) => match err.err() {
+                DeleteItemError::ConditionalCheckFailedException(_) => Err(DbError::NotFound),
+                _ => Err(DbError::Unknown(format!("{:#?}", err))),
+            },
+            Err(err) => Err(DbError::Unknown(format!(
+                "{}: delete(): {:#?}",
+                TABLE_NAME, err
+            ))),
+        }
+    }
+
     pub async fn delete_for_project(&self, project_id: &str) -> Result<(), DbError> {
         let mut expression_attribute_values = HashMap::new();
         expression_attribute_values.insert(
@@ -350,7 +392,7 @@ impl TimeTrackRepository {
         if let Some(stopped_at_attr) = item.get("stopped_at") {
             stopped_at = stopped_at_attr.as_s().ok()?.parse().ok();
         }
-        let mut total_duration = Duration::new(0,0);
+        let mut total_duration = Duration::new(0, 0);
         if let Some(duration_at_attr) = item.get("total_duration") {
             let duration_as_str = duration_at_attr.as_s().ok()?;
             total_duration = match parse_duration(&duration_as_str) {
