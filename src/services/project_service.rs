@@ -1,13 +1,13 @@
 use tokio::sync::RwLock;
 
+use super::time_track_service::TimeTrackService;
 use crate::{
     infrastructure::{database::DbError, project_repository::ProjectRepository},
     models::project_model::{Project, ProjectStatus},
     User,
 };
+use std::env;
 use std::{cmp::Ordering, sync::Arc};
-
-use super::time_track_service::TimeTrackService;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ProjectError {
@@ -40,6 +40,7 @@ impl From<DbError> for ProjectError {
 pub struct ProjectService {
     repository: Arc<ProjectRepository>,
     time_track_service: RwLock<Option<Arc<TimeTrackService>>>,
+    max_projects: usize,
 }
 
 impl ProjectService {
@@ -47,9 +48,20 @@ impl ProjectService {
         repository: Arc<ProjectRepository>,
         time_track_service: Option<Arc<TimeTrackService>>,
     ) -> Self {
+        // Get max number of projects from env
+        let max_projects = {
+            let number = env::var("MAX_PROJECTS");
+            if number.is_ok() {
+                number.ok().unwrap().parse().ok().unwrap()
+            } else {
+                15
+            } // Default 15
+        };
+
         ProjectService {
             repository,
             time_track_service: RwLock::new(time_track_service),
+            max_projects,
         }
     }
 
@@ -58,12 +70,12 @@ impl ProjectService {
         *service = Some(time_track_service);
     }
 
-    pub async fn create(&self, project_name: &str, user: &User) -> Result<(Project), ProjectError> {
+    pub async fn create(&self, user: &User, project_name: String) -> Result<(Project), ProjectError> {
         // Get existing projects for user
         let existing_projects = self.repository.get_all(&user).await?;
 
         // Each user can maximum have 15 projects
-        if existing_projects.len() >= 15 {
+        if existing_projects.len() >= self.max_projects {
             return Err(ProjectError::TooManyProjects);
         }
 
@@ -75,7 +87,7 @@ impl ProjectService {
         }
 
         // Create the new project
-        let project = Project::new(project_name, &user.name);
+        let project = Project::new(project_name, user.name.clone());
         self.repository.create(&project).await?;
 
         Ok(project)
@@ -144,6 +156,20 @@ impl ProjectService {
         }
 
         Ok(project)
+    }
+
+    pub async fn update_name(
+        &self,
+        user: &User,
+        project_id: String,
+        new_project_name: String,
+    ) -> Result<Project, ProjectError> {
+        let mut project = self.repository.get(user, &project_id).await?;
+
+        project.name = new_project_name;
+
+        let updated_project = self.repository.update(user, &mut project).await?;
+        Ok(updated_project)
     }
 
     pub async fn update(

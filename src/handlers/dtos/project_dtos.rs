@@ -20,7 +20,7 @@ pub enum Error {
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
 #[serde(crate = "rocket::serde")]
-pub struct NewProjectDto {
+pub struct CreateProjectDto {
     #[validate(length(
         min = 1,
         max = 25,
@@ -30,7 +30,7 @@ pub struct NewProjectDto {
 }
 
 #[rocket::async_trait]
-impl<'r> FromData<'r> for NewProjectDto {
+impl<'r> FromData<'r> for CreateProjectDto {
     type Error = Error;
 
     async fn from_data(req: &'r Request<'_>, data: Data<'r>) -> data::Outcome<'r, Self> {
@@ -49,7 +49,7 @@ impl<'r> FromData<'r> for NewProjectDto {
             Err(e) => return Outcome::Error((Status::InternalServerError, Error::Io(e))),
         };
 
-        let new_project_dto: NewProjectDto = match serde_json::from_str(&string) {
+        let new_project_dto: CreateProjectDto = match serde_json::from_str(&string) {
             Ok(dto) => dto,
             Err(e) => return Outcome::Error((Status::UnprocessableEntity, Error::Json(e))),
         };

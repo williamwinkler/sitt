@@ -1,6 +1,5 @@
 use aws_config;
 use aws_sdk_dynamodb::Client;
-use aws_sdk_dynamodb::Error;
 use std::env;
 use thiserror::Error;
 

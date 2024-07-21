@@ -51,7 +51,7 @@ pub struct Project {
 }
 
 impl Project {
-    pub fn new(project_name: &str, created_by: &str) -> Self {
+    pub fn new(project_name: String, created_by: String) -> Self {
         Project {
             id: Uuid::new_v4().to_string(),
             name: project_name.to_string(),
