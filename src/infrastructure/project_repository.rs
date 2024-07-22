@@ -96,7 +96,6 @@ impl ProjectRepository {
                 None => Err(DbError::NotFound),
             },
             Err(err) => {
-                format!("{:#?}", err);
                 Err(DbError::Unknown(format!("{}: {:#?}", TABLE_NAME, err)))
             }
         }

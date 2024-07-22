@@ -31,37 +31,26 @@ pub struct CreateProjectDto {
 
 #[rocket::async_trait]
 impl<'r> FromData<'r> for CreateProjectDto {
-    type Error = Error;
+    type Error = ();
 
     async fn from_data(req: &'r Request<'_>, data: Data<'r>) -> data::Outcome<'r, Self> {
         let limit = 256.bytes();
         let string = match data.open(limit).into_string().await {
             Ok(string) if string.is_complete() => string.into_inner(),
-            Ok(_) => {
-                return Outcome::Error((
-                    Status::PayloadTooLarge,
-                    Error::Io(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        "Payload too large",
-                    )),
-                ))
-            }
-            Err(e) => return Outcome::Error((Status::InternalServerError, Error::Io(e))),
+            Ok(_) => return Outcome::Error((Status::PayloadTooLarge, ())),
+            Err(_) => return Outcome::Error((Status::InternalServerError, ())),
         };
 
-        let new_project_dto: CreateProjectDto = match serde_json::from_str(&string) {
-            Ok(dto) => dto,
-            Err(e) => return Outcome::Error((Status::UnprocessableEntity, Error::Json(e))),
+        let create_project_dto: CreateProjectDto = match serde_json::from_str(&string) {
+            Ok(value) => value,
+            Err(_) => return Outcome::Error((Status::UnprocessableEntity, ())),
         };
 
-        if let Err(validation_err) = new_project_dto.validate() {
-            return Outcome::Error((
-                Status::UnprocessableEntity,
-                Error::ValidationError(validation_err),
-            ));
+        if create_project_dto.validate().is_err() {
+            return Outcome::Error((Status::UnprocessableEntity, ()));
         }
 
-        Outcome::Success(new_project_dto)
+        Outcome::Success(create_project_dto)
     }
 }
 #[derive(Debug, Serialize)]

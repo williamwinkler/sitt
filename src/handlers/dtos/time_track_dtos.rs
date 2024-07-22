@@ -1,7 +1,45 @@
 use crate::models::time_track_model::{TimeTrack, TimeTrackStatus};
 use chrono::{DateTime, Utc};
 use humantime::format_duration;
-use serde::Serialize;
+use rocket::{
+    data::{self, FromData, ToByteUnit},
+    http::Status,
+    outcome::Outcome,
+    Data, Request,
+};
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct UpdateTimeTrackDto {
+    pub started_at: DateTime<Utc>,
+    pub stopped_at: DateTime<Utc>,
+}
+
+#[rocket::async_trait]
+impl<'r> FromData<'r> for UpdateTimeTrackDto {
+    type Error = ();
+
+    async fn from_data(req: &'r Request<'_>, data: Data<'r>) -> data::Outcome<'r, Self> {
+        let limit = 256.bytes();
+        let string = match data.open(limit).into_string().await {
+            Ok(string) if string.is_complete() => string.into_inner(),
+            Ok(_) => return Outcome::Error((Status::PayloadTooLarge, ())),
+            Err(_) => return Outcome::Error((Status::InternalServerError, ())),
+        };
+
+        let update_time_track_dto: UpdateTimeTrackDto = match serde_json::from_str(&string) {
+            Ok(value) => value,
+            Err(_) => return Outcome::Error((Status::UnprocessableEntity, ())),
+        };
+
+        // if update_time_track_dto.validate().is_err() {
+        //     return Outcome::Error((Status::UnprocessableEntity, ()))
+        // }
+
+        Outcome::Success(update_time_track_dto)
+    }
+}
 
 #[derive(Debug, Serialize)]
 pub struct TimeTrackDto {

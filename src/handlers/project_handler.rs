@@ -13,13 +13,17 @@ pub fn routes() -> Vec<Route> {
     routes![create, get, get_all, update, delete]
 }
 
-#[post("/projects", format = "application/json", data = "<new_project>")]
+#[post(
+    "/projects",
+    format = "application/json",
+    data = "<create_project_dto>"
+)]
 pub async fn create(
     project_service: &State<Arc<ProjectService>>,
     user: &State<User>,
-    new_project: CreateProjectDto,
+    create_project_dto: CreateProjectDto,
 ) -> Result<status::Created<Json<ProjectDto>>, status::Custom<Json<ErrorResponse>>> {
-    let project_name = new_project.name;
+    let project_name = create_project_dto.name;
 
     match project_service.create(&user, project_name).await {
         Ok(project) => Ok(status::Created::new("/projects").body(Json(ProjectDto::from(project)))),

@@ -7,7 +7,7 @@ use crate::{
     },
     User,
 };
-use chrono::Utc;
+use chrono::{Date, DateTime, Utc};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -111,7 +111,6 @@ impl TimeTrackService {
 
         // Update time track item to be finished
         let stopped_at = Utc::now();
-
         time_track.stopped_at = Some(stopped_at);
         time_track.status = TimeTrackStatus::Finished;
         let duration = {
@@ -121,9 +120,9 @@ impl TimeTrackService {
         time_track.total_duration = duration;
         self.repository.update(&time_track).await?;
 
-        // Update the project to be INACTIVE and add duration to duration_in_seconds
+        // Update the project to be INACTIVE
+        // No need to set update_total_duration, because it does that in get
         project.status = ProjectStatus::Inactive;
-        project.total_duration += duration;
 
         self.project_service.update(user, &mut project).await?;
 
@@ -169,9 +168,63 @@ impl TimeTrackService {
         Ok(time_track)
     }
 
-    pub async  fn delete(&self, user: &User, project_id: String, time_track_id: String) -> Result<(), TimeTrackError> {
-        let result = self.repository.delete(user, project_id, time_track_id).await?;
-        Ok(result)
+    pub async fn update(
+        &self,
+        user: &User,
+        project_id: String,
+        time_track_id: String,
+        new_started_at: DateTime<Utc>,
+        new_stopped_at: DateTime<Utc>,
+    ) -> Result<(TimeTrack, String), TimeTrackError> {
+        let mut project = self.project_service.get(user, &project_id).await?;
+
+        let mut time_track = self
+            .repository
+            .get(project_id.clone(), time_track_id)
+            .await?;
+
+        // Reduce the project durtaion with the time_track duration
+        project.total_duration -= time_track.total_duration;
+
+        // Update the time track properties
+        time_track.started_at = new_started_at;
+        time_track.stopped_at = Some(new_stopped_at);
+        time_track.total_duration = {
+            // Recalculate the duration
+            let time_delta = new_stopped_at - new_started_at;
+            Duration::new(time_delta.num_seconds() as u64, 0)
+        };
+        self.repository.update(&time_track).await?;
+
+        // Add the new time track duration to the project total duration
+        project.total_duration += time_track.total_duration;
+        self.project_service.update(user, &mut project).await?;
+
+        Ok((time_track, project.name))
+    }
+
+    pub async fn delete(
+        &self,
+        user: &User,
+        project_id: String,
+        time_track_id: String,
+    ) -> Result<(), TimeTrackError> {
+        // Get the project
+        let mut project = self.project_service.get(user, &project_id).await?;
+
+        // Try to delete the time_track and have it returned
+        let time_track = self
+            .repository
+            .delete(user, project_id, time_track_id)
+            .await?;
+
+        // Substract the duration from the delete time_track
+        project.total_duration -= time_track.total_duration;
+
+        // Update the project with the reduced duration
+        self.project_service.update(user, &mut project).await?;
+
+        Ok(())
     }
 
     pub async fn delete_for_project(

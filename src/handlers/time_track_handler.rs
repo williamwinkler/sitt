@@ -1,5 +1,8 @@
 use super::{
-    dtos::{common_dtos::ErrorResponse, time_track_dtos::TimeTrackDto},
+    dtos::{
+        common_dtos::ErrorResponse, time_track_dtos::TimeTrackDto,
+        time_track_dtos::UpdateTimeTrackDto,
+    },
     validation::valid_uuid::ValidateUuid,
 };
 use crate::{
@@ -7,12 +10,12 @@ use crate::{
     User,
 };
 use rocket::{
-    delete, get, http::Status, post, response::status, routes, serde::json::Json, Route, State,
+    delete, get, http::Status, post, put, response::status, routes, serde::json::Json, Route, State,
 };
 use std::sync::Arc;
 
 pub fn routes() -> Vec<Route> {
-    routes![start, stop, get, delete]
+    routes![start, stop, get, update, delete]
 }
 
 #[post("/timetrack/<project_id>/start")]
@@ -128,9 +131,57 @@ pub async fn get(
     }
 }
 
-// TODO: update time_track -> should take started_at, stopped_at and it should recalculate the duration.
+#[put(
+    "/timetrack/<project_id>/<time_track_id>",
+    format = "application/json",
+    data = "<update_time_track_dto>"
+)]
+pub async fn update(
+    time_track_service: &State<Arc<TimeTrackService>>,
+    user: &State<User>,
+    project_id: ValidateUuid,
+    time_track_id: ValidateUuid,
+    update_time_track_dto: UpdateTimeTrackDto,
+) -> Result<Json<TimeTrackDto>, status::Custom<Json<ErrorResponse>>> {
+    let project_id = project_id.0.to_string();
+    let time_track_id = time_track_id.0.to_string();
+    let new_started_at = update_time_track_dto.started_at;
+    let new_stopped_at = update_time_track_dto.stopped_at;
 
-#[delete["/timetrack/<project_id>/<time_track_id>"]]
+    match time_track_service
+        .update(
+            user,
+            project_id,
+            time_track_id,
+            new_started_at,
+            new_stopped_at,
+        )
+        .await
+    {
+        Ok(res) => Ok(Json(TimeTrackDto::from_time_track_with_project_name(
+            res.0, res.1,
+        ))),
+        Err(err) => match err {
+            TimeTrackError::NotFound => Err(status::Custom(
+                Status::NotFound,
+                Json(ErrorResponse {
+                    error_mesage: err.to_string(),
+                }),
+            )),
+            _ => {
+                eprintln!("{}", err.to_string());
+                Err(status::Custom(
+                    Status::InternalServerError,
+                    Json(ErrorResponse {
+                        error_mesage: String::from("An internal error occurred"),
+                    }),
+                ))
+            }
+        },
+    }
+}
+
+#[delete("/timetrack/<project_id>/<time_track_id>")]
 pub async fn delete(
     time_track_service: &State<Arc<TimeTrackService>>,
     user: &State<User>,

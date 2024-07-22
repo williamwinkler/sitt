@@ -4,9 +4,11 @@ use crate::{
     services::time_track_service::TimeTrackError,
     User,
 };
-use aws_sdk_dynamodb::{error::SdkError, operation::delete_item::DeleteItemError, types::{
-    AttributeDefinition, AttributeValue, KeySchemaElement, KeyType, ScalarAttributeType,
-}};
+use aws_sdk_dynamodb::{
+    error::SdkError,
+    operation::delete_item::DeleteItemError,
+    types::{AttributeDefinition, AttributeValue, KeySchemaElement, KeyType, ScalarAttributeType},
+};
 use chrono::{DateTime, Utc};
 use humantime::{format_duration, parse_duration};
 use std::{collections::HashMap, sync::Arc, time::Duration};
@@ -86,6 +88,39 @@ impl TimeTrackRepository {
             .await
             .map(|_| ())
             .map_err(|err| DbError::Unknown(format!("{}, create(): {:#?}", TABLE_NAME, err)))
+    }
+
+    pub async fn get(
+        &self,
+        project_id: String,
+        time_track_id: String,
+    ) -> Result<TimeTrack, DbError> {
+        let result = self
+            .db
+            .client
+            .get_item()
+            .table_name(TABLE_NAME)
+            .key("project_id", AttributeValue::S(project_id.clone()))
+            .key("id", AttributeValue::S(time_track_id))
+            .send()
+            .await;
+
+        match result {
+            Ok(output) => match output.item {
+                Some(item) => match TimeTrackRepository::convert_item_to_time_track(&item) {
+                    Some(time_track) => Ok(time_track),
+                    None => Err(DbError::Convertion {
+                        table: TABLE_NAME.into(),
+                        id: project_id,
+                    }),
+                },
+                None => Err(DbError::NotFound),
+            },
+            Err(err) => Err(DbError::Unknown(format!(
+                "{}: get() {:#?}",
+                TABLE_NAME, err
+            ))),
+        }
     }
 
     pub async fn get_in_progress(
@@ -253,7 +288,7 @@ impl TimeTrackRepository {
         user: &User,
         project_id: String,
         time_track_id: String,
-    ) -> Result<(), DbError> {
+    ) -> Result<TimeTrack, DbError> {
         let result = self
             .db
             .client
@@ -269,7 +304,18 @@ impl TimeTrackRepository {
 
         match result {
             Ok(item) => match item.attributes {
-                Some(_) => Ok(()),
+                Some(item) => match TimeTrackRepository::convert_item_to_time_track(&item) {
+                    Some(time_track) => Ok(time_track),
+                    None => Err(DbError::Convertion {
+                        table: TABLE_NAME.into(),
+                        id: item
+                            .get("id")
+                            .expect("time track item has no id")
+                            .as_s()
+                            .expect("time track id must be string")
+                            .into(),
+                    }),
+                },
                 None => Err(DbError::NotFound),
             },
             // If there is no time_track matching the expression dynamoDB throws this error => NotFound
