@@ -8,6 +8,7 @@ use crate::{
     User,
 };
 use chrono::{Date, DateTime, Utc};
+use rocket::serde::json::Json;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -124,6 +125,32 @@ impl TimeTrackService {
         // No need to set update_total_duration, because it does that in get
         project.status = ProjectStatus::Inactive;
 
+        self.project_service.update(user, &mut project).await?;
+
+        Ok((time_track, project.name))
+    }
+
+    pub async fn create(
+        &self,
+        user: &User,
+        project_id: String,
+        started_at: DateTime<Utc>,
+        stopped_at: DateTime<Utc>,
+    ) -> Result<(TimeTrack, String), TimeTrackError> {
+        let mut project = self.project_service.get(user, &project_id).await?;
+
+        let mut time_track = TimeTrack::new(&project_id, user);
+        time_track.started_at = started_at;
+        time_track.stopped_at = Some(stopped_at);
+        time_track.status = TimeTrackStatus::Finished;
+        time_track.total_duration = {
+            // Calculate the duration
+            let time_delta = stopped_at - started_at;
+            Duration::new(time_delta.num_seconds() as u64, 0)
+        };
+        self.repository.create(&time_track).await?;
+
+        project.total_duration += time_track.total_duration;
         self.project_service.update(user, &mut project).await?;
 
         Ok((time_track, project.name))

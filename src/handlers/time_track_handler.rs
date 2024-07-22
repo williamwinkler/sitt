@@ -1,7 +1,7 @@
 use super::{
     dtos::{
-        common_dtos::ErrorResponse, time_track_dtos::TimeTrackDto,
-        time_track_dtos::UpdateTimeTrackDto,
+        common_dtos::ErrorResponse, time_track_dtos::CreateTimeTrackDto,
+        time_track_dtos::TimeTrackDto,
     },
     validation::valid_uuid::ValidateUuid,
 };
@@ -15,7 +15,7 @@ use rocket::{
 use std::sync::Arc;
 
 pub fn routes() -> Vec<Route> {
-    routes![start, stop, get, update, delete]
+    routes![start, stop, create, get, update, delete]
 }
 
 #[post("/timetrack/<project_id>/start")]
@@ -94,6 +94,47 @@ pub async fn stop(
     }
 }
 
+#[post(
+    "/timetrack",
+    format = "application/json",
+    data = "<create_time_track_dto>"
+)]
+pub async fn create(
+    time_track_service: &State<Arc<TimeTrackService>>,
+    user: &State<User>,
+    create_time_track_dto: CreateTimeTrackDto,
+) -> Result<Json<TimeTrackDto>, status::Custom<Json<ErrorResponse>>> {
+    let project_id = create_time_track_dto.project_id;
+    let started_at = create_time_track_dto.started_at;
+    let stopped_at = create_time_track_dto.stopped_at;
+
+    match time_track_service
+        .create(user, project_id, started_at, stopped_at)
+        .await
+    {
+        Ok(res) => Ok(Json(TimeTrackDto::from_time_track_with_project_name(
+            res.0, res.1,
+        ))),
+        Err(err) => match err {
+            TimeTrackError::NotFound => Err(status::Custom(
+                Status::NotFound,
+                Json(ErrorResponse {
+                    error_mesage: err.to_string(),
+                }),
+            )),
+            _ => {
+                eprintln!("{}", err.to_string());
+                Err(status::Custom(
+                    Status::InternalServerError,
+                    Json(ErrorResponse {
+                        error_mesage: String::from("An internal error occurred"),
+                    }),
+                ))
+            }
+        },
+    }
+}
+
 #[get("/timetrack/<project_id>")]
 pub async fn get(
     time_track_service: &State<Arc<TimeTrackService>>,
@@ -132,19 +173,18 @@ pub async fn get(
 }
 
 #[put(
-    "/timetrack/<project_id>/<time_track_id>",
+    "/timetrack/<time_track_id>",
     format = "application/json",
     data = "<update_time_track_dto>"
 )]
 pub async fn update(
     time_track_service: &State<Arc<TimeTrackService>>,
     user: &State<User>,
-    project_id: ValidateUuid,
     time_track_id: ValidateUuid,
-    update_time_track_dto: UpdateTimeTrackDto,
+    update_time_track_dto: CreateTimeTrackDto,
 ) -> Result<Json<TimeTrackDto>, status::Custom<Json<ErrorResponse>>> {
-    let project_id = project_id.0.to_string();
     let time_track_id = time_track_id.0.to_string();
+    let project_id = update_time_track_dto.project_id;
     let new_started_at = update_time_track_dto.started_at;
     let new_stopped_at = update_time_track_dto.stopped_at;
 

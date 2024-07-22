@@ -8,16 +8,18 @@ use rocket::{
     Data, Request,
 };
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 #[serde(crate = "rocket::serde")]
-pub struct UpdateTimeTrackDto {
+pub struct CreateTimeTrackDto {
+    pub project_id: String,
     pub started_at: DateTime<Utc>,
     pub stopped_at: DateTime<Utc>,
 }
 
 #[rocket::async_trait]
-impl<'r> FromData<'r> for UpdateTimeTrackDto {
+impl<'r> FromData<'r> for CreateTimeTrackDto {
     type Error = ();
 
     async fn from_data(req: &'r Request<'_>, data: Data<'r>) -> data::Outcome<'r, Self> {
@@ -28,14 +30,14 @@ impl<'r> FromData<'r> for UpdateTimeTrackDto {
             Err(_) => return Outcome::Error((Status::InternalServerError, ())),
         };
 
-        let update_time_track_dto: UpdateTimeTrackDto = match serde_json::from_str(&string) {
+        let update_time_track_dto: CreateTimeTrackDto = match serde_json::from_str(&string) {
             Ok(value) => value,
             Err(_) => return Outcome::Error((Status::UnprocessableEntity, ())),
         };
 
-        // if update_time_track_dto.validate().is_err() {
-        //     return Outcome::Error((Status::UnprocessableEntity, ()))
-        // }
+        if Uuid::parse_str(&update_time_track_dto.project_id).is_err() {
+            return Outcome::Error((Status::UnprocessableEntity, ()));
+        }
 
         Outcome::Success(update_time_track_dto)
     }

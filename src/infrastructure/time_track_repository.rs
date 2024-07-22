@@ -410,6 +410,10 @@ impl TimeTrackRepository {
             );
         }
         item.insert(
+            "total_duration".to_string(),
+            AttributeValue::S(format_duration(tt.total_duration).to_string()),
+        );
+        item.insert(
             "created_by".to_string(),
             AttributeValue::S(tt.created_by.to_string()),
         );
