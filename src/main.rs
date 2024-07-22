@@ -3,6 +3,7 @@ use dotenv::dotenv;
 use infrastructure::{
     project_repository::ProjectRepository, time_track_repository::TimeTrackRepository,
 };
+use lambda_web::{is_running_on_lambda, launch_rocket_on_lambda, LambdaError};
 use std::sync::Arc;
 
 mod handlers;
@@ -15,7 +16,7 @@ struct User {
 }
 
 #[rocket::main]
-async fn main() -> Result<(), rocket::Error> {
+async fn main() -> Result<(), LambdaError> {
     dotenv().ok();
 
     // There is only one user for now
@@ -42,16 +43,21 @@ async fn main() -> Result<(), rocket::Error> {
         .set_time_track_service(time_track_service.clone())
         .await;
 
-    let _rocket = rocket::build()
+    // Setup Rocket
+    let rocket = rocket::build()
         .manage(user)
         .manage(project_service)
         .manage(time_track_service)
         .mount("/api/v1", handlers::project_handler::routes())
-        .mount("/api/v1", handlers::time_track_handler::routes())
-        .ignite()
-        .await?
-        .launch()
-        .await?;
+        .mount("/api/v1", handlers::time_track_handler::routes());
+
+    if is_running_on_lambda() {
+        // Launch on AWS Lambda
+        launch_rocket_on_lambda(rocket).await?;
+    } else {
+        // Launch local server
+        let _ = rocket.launch().await?;
+    }
 
     Ok(())
 }
