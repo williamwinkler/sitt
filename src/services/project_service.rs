@@ -49,14 +49,10 @@ impl ProjectService {
         time_track_service: Option<Arc<TimeTrackService>>,
     ) -> Self {
         // Get max number of projects from env
-        let max_projects = {
-            let number = env::var("MAX_PROJECTS");
-            if number.is_ok() {
-                number.ok().unwrap().parse().ok().unwrap()
-            } else {
-                15
-            } // Default 15
-        };
+        let max_projects = env::var("MAX_PROJECTS")
+            .ok()
+            .and_then(|val| val.parse().ok())
+            .unwrap_or(15);
 
         ProjectService {
             repository,

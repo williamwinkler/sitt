@@ -1,12 +1,11 @@
 use super::database::{Database, DbError};
 use crate::{
     models::time_track_model::{TimeTrack, TimeTrackStatus},
-    services::time_track_service::TimeTrackError,
     User,
 };
 use aws_sdk_dynamodb::{
     error::SdkError,
-    operation::delete_item::DeleteItemError,
+    operation::{create_table::CreateTableError, delete_item::DeleteItemError},
     types::{AttributeDefinition, AttributeValue, KeySchemaElement, KeyType, ScalarAttributeType},
 };
 use chrono::{DateTime, Utc};
@@ -21,7 +20,7 @@ pub struct TimeTrackRepository {
 static TABLE_NAME: &str = "time_trackings";
 
 impl TimeTrackRepository {
-    pub async fn new(db: Arc<Database>) -> Self {
+    pub async fn build(db: Arc<Database>) -> Result<Self, DbError> {
         // Partion key: project_id
         let attr_part = AttributeDefinition::builder()
             .attribute_name("project_id")
@@ -60,7 +59,7 @@ impl TimeTrackRepository {
                 TABLE_NAME
             ));
 
-        let _ = db
+        let result = db
             .client
             .create_table()
             .table_name(TABLE_NAME)
@@ -71,9 +70,24 @@ impl TimeTrackRepository {
             .key_schema(keyschema_sort)
             .send()
             .await;
-        //.map_err(|err| println!("{:#?}", err));
 
-        Self { db }
+        // Check if there is an error creating the table
+        if let Err(SdkError::ServiceError(service_err)) = result {
+            match service_err.err() {
+                CreateTableError::ResourceInUseException(info) => {
+                    // If the error is not, that the table already exists => throw error
+                    if info
+                        .message()
+                        .map_or(true, |msg| !msg.contains("Table already exists"))
+                    {
+                        return Err(DbError::Unknown(format!("{:#?}", service_err)));
+                    }
+                }
+                _ => return Err(DbError::Unknown(format!("{:#?}", service_err))),
+            }
+        }
+
+        Ok(Self { db })
     }
 
     pub async fn create(&self, time_track: &TimeTrack) -> Result<(), DbError> {

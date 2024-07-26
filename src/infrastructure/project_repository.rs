@@ -1,7 +1,9 @@
 use super::database::{Database, DbError};
 use crate::{models::project_model::Project, User};
-use aws_sdk_dynamodb::types::{
-    AttributeDefinition, AttributeValue, KeySchemaElement, KeyType, ScalarAttributeType,
+use aws_sdk_dynamodb::{
+    error::SdkError,
+    operation::create_table::CreateTableError,
+    types::{AttributeDefinition, AttributeValue, KeySchemaElement, KeyType, ScalarAttributeType},
 };
 use chrono::{DateTime, Utc};
 use humantime::{format_duration, parse_duration};
@@ -15,7 +17,7 @@ pub struct ProjectRepository {
 static TABLE_NAME: &str = "projects";
 
 impl ProjectRepository {
-    pub async fn new(db: Arc<Database>) -> Self {
+    pub async fn build(db: Arc<Database>) -> Result<ProjectRepository, DbError> {
         // Partion key: created_by
         let attr_part = AttributeDefinition::builder()
             .attribute_name("created_by")
@@ -43,7 +45,7 @@ impl ProjectRepository {
             .expect("Error building the key schema partion");
 
         // Create the table
-        let _ = db
+        let result = db
             .client
             .create_table()
             .table_name(TABLE_NAME)
@@ -54,9 +56,24 @@ impl ProjectRepository {
             .key_schema(keyschema_sort)
             .send()
             .await;
-        // .map_err(|err| println!("{:#?}", err));
 
-        Self { db }
+        // Check if there is an error creating the table
+        if let Err(SdkError::ServiceError(service_err)) = result {
+            match service_err.err() {
+                CreateTableError::ResourceInUseException(info) => {
+                    // If the error is not, that the table already exists => throw error
+                    if info
+                        .message()
+                        .map_or(true, |msg| !msg.contains("Table already exists"))
+                    {
+                        return Err(DbError::Unknown(format!("{:#?}", service_err)));
+                    }
+                }
+                _ => return Err(DbError::Unknown(format!("{:#?}", service_err))),
+            }
+        }
+
+        Ok(Self { db })
     }
 
     pub async fn create(&self, project: &Project) -> Result<(), DbError> {
@@ -95,9 +112,7 @@ impl ProjectRepository {
                 },
                 None => Err(DbError::NotFound),
             },
-            Err(err) => {
-                Err(DbError::Unknown(format!("{}: {:#?}", TABLE_NAME, err)))
-            }
+            Err(err) => Err(DbError::Unknown(format!("{}: {:#?}", TABLE_NAME, err))),
         }
     }
 

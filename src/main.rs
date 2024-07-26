@@ -26,8 +26,8 @@ async fn main() -> Result<(), LambdaError> {
 
     // Infrastructure
     let database = Arc::new(infrastructure::database::Database::new().await);
-    let project_repository = Arc::new(ProjectRepository::new(database.clone()).await);
-    let time_track_repository = Arc::new(TimeTrackRepository::new(database.clone()).await);
+    let project_repository = Arc::new(ProjectRepository::build(database.clone()).await?);
+    let time_track_repository = Arc::new(TimeTrackRepository::build(database.clone()).await?);
 
     // Services
     let project_service = Arc::new(services::project_service::ProjectService::new(
