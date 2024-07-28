@@ -105,16 +105,23 @@ impl UserRepository {
         // If the table was just created, add a default admin user
         if result.is_ok() {
             let default_admin_user = User::new("DEFAULT ADMIN", &UserRole::Admin, "SYSTEM");
-            let one_sec  = Duration::new(1, 0);
+            let one_sec = Duration::new(1, 0);
+            let max_retries = 30;
+            let mut attempt = 0;
 
             // Loop because it can take some time for the DynamoDB table to get created
             loop {
-                println!("Trying to create default admin user...");
+                if attempt >= max_retries {
+                    eprintln!("Failed to create DEFAULT ADMIN user after {} attempts. Exiting.", max_retries);
+                    std::process::exit(1);
+                }
+                println!("Trying to create default admin user (attempt {})...", attempt + 1);
                 let result = user_repository.create(&default_admin_user).await;
                 if result.is_ok() {
                     break;
                 } else {
                     sleep(one_sec).await;
+                    attempt += 1;
                 }
             }
             println!("Created DEFAULT ADMIN user. Make sure to create your own ADMIN user and delete this one.");
