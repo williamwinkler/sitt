@@ -1,5 +1,8 @@
-use super::database::{Database, DbError};
-use crate::{models::project_model::Project, User};
+use super::{
+    database::{Database, DbError},
+    utils::{get_datetime_value, get_string_value},
+};
+use crate::models::{project_model::{Project, ProjectStatus}, user_model::User};
 use aws_sdk_dynamodb::{
     error::SdkError,
     operation::create_table::CreateTableError,
@@ -96,19 +99,16 @@ impl ProjectRepository {
             .client
             .get_item()
             .table_name(TABLE_NAME)
-            .key("created_by", AttributeValue::S(user.name.to_string()))
+            .key("created_by", AttributeValue::S(user.id.to_string()))
             .key("id", AttributeValue::S(project_id.to_string()))
             .send()
             .await;
 
         match result {
-            Ok(output) => match output.item {
-                Some(item) => match ProjectRepository::convert_item_to_project(&item) {
-                    Some(project) => Ok(project),
-                    None => Err(DbError::Convertion {
-                        table: TABLE_NAME.into(),
-                        id: project_id.into(),
-                    }),
+            Ok(output) => match &output.item {
+                Some(item) => {
+                    let project = Self::convert_item_to_project(item)?;
+                    Ok(project)
                 },
                 None => Err(DbError::NotFound),
             },
@@ -123,7 +123,7 @@ impl ProjectRepository {
             .query()
             .table_name(TABLE_NAME)
             .key_condition_expression("created_by = :created_by")
-            .expression_attribute_values(":created_by", AttributeValue::S(user.name.to_string()))
+            .expression_attribute_values(":created_by", AttributeValue::S(user.id.to_string()))
             .send()
             .await;
 
@@ -132,20 +132,8 @@ impl ProjectRepository {
                 Some(items) => {
                     let mut projects = Vec::new();
                     for item in items.iter() {
-                        match ProjectRepository::convert_item_to_project(item) {
-                            Some(project) => projects.push(project),
-                            None => {
-                                return Err(DbError::Convertion {
-                                    table: TABLE_NAME.into(),
-                                    id: item
-                                        .get("project_id")
-                                        .expect("project_id must be present")
-                                        .as_s()
-                                        .expect("project_id must be a string")
-                                        .into(),
-                                });
-                            }
-                        }
+                        let project = Self::convert_item_to_project(item)?;
+                        projects.push(project);
                     }
                     Ok(projects)
                 }
@@ -158,7 +146,7 @@ impl ProjectRepository {
     pub async fn update(&self, user: &User, project: &mut Project) -> Result<Project, DbError> {
         // Update modified at & by
         project.modified_at = Some(Utc::now());
-        project.modified_by = Some(user.name.to_string());
+        project.modified_by = Some(user.id.to_string());
 
         let mut item = HashMap::new();
 
@@ -203,7 +191,7 @@ impl ProjectRepository {
             .table_name(TABLE_NAME)
             .key(
                 "created_by",
-                AttributeValue::S(project.created_by.to_string()),
+                AttributeValue::S(project.id.to_string()),
             )
             .key("id", AttributeValue::S(project.id.to_string()))
             .update_expression(update_expression)
@@ -213,14 +201,11 @@ impl ProjectRepository {
             .await;
 
         match result {
-            Ok(item) => match item.attributes {
-                Some(attr) => match ProjectRepository::convert_item_to_project(&attr) {
-                    Some(project) => Ok(project),
-                    None => Err(DbError::Convertion {
-                        table: TABLE_NAME.into(),
-                        id: project.id.clone(),
-                    }),
-                },
+            Ok(item) => match &item.attributes {
+                Some(attr) => {
+                    let project = Self::convert_item_to_project(attr)?;
+                    Ok(project)
+                }
                 None => Err(DbError::NotFound),
             },
             Err(err) => Err(DbError::Unknown(format!("{}: {:#?}", TABLE_NAME, err))),
@@ -233,7 +218,7 @@ impl ProjectRepository {
             .client
             .delete_item()
             .table_name(TABLE_NAME)
-            .key("created_by", AttributeValue::S(user.name.to_string()))
+            .key("created_by", AttributeValue::S(user.id.to_string()))
             .key("id", AttributeValue::S(project_id.to_string()))
             .return_values(aws_sdk_dynamodb::types::ReturnValue::AllOld)
             .send()
@@ -290,30 +275,46 @@ impl ProjectRepository {
         item
     }
 
-    fn convert_item_to_project(item: &HashMap<String, AttributeValue>) -> Option<Project> {
-        let id = item.get("id")?.as_s().ok()?.to_string();
-        let name = item.get("project_name")?.as_s().ok()?.to_string();
-        let status = item.get("project_status")?.as_s().ok()?.parse().ok()?;
-        let total_duration_str = item.get("total_duration")?.as_s().ok()?;
-        let total_duration = parse_duration(total_duration_str).ok()?;
-        let created_at = item
-            .get("created_at")?
-            .as_s()
-            .ok()?
-            .parse::<DateTime<Utc>>()
-            .ok()?;
-        let created_by = item.get("created_by")?.as_s().ok()?.to_string();
+    fn convert_item_to_project(item: &HashMap<String, AttributeValue>) -> Result<Project, DbError> {
+        let id = get_string_value(item, "id")?;
+        let name = get_string_value(item, "project_name")?;
+        let status = {
+            let project_status_str = get_string_value(item, "project_status")?;
+            project_status_str.parse::<ProjectStatus>().map_err(|_| {
+                DbError::Unknown(format!(
+                    "Invalid status value '{}' in item: {}",
+                    project_status_str, id
+                ))
+            })?
+        };
+
+        let total_duration = {
+            let duration_as_str = get_string_value(item, "total_duration")?;
+            match parse_duration(&duration_as_str) {
+                Ok(duration) => duration,
+                Err(err) => {
+                    return Err(DbError::Unknown(format!(
+                        "Failed to parse str duration '{}' of item '{}' with err: {}",
+                        duration_as_str, id, err
+                    )));
+                }
+            }
+        };
+        let created_at = get_datetime_value(item, "created_at")?;
+        let created_by = get_string_value(item, "created_by")?;
 
         let mut modified_at: Option<DateTime<Utc>> = None;
-        if let Some(modified_at_attr) = item.get("modified_at") {
-            modified_at = modified_at_attr.as_s().ok()?.parse::<DateTime<Utc>>().ok();
+        if item.get("modified_at").is_some() {
+            let modifed_at_datetime = get_datetime_value(item, "modified_at")?;
+            modified_at = Some(modifed_at_datetime);
         }
         let mut modified_by: Option<String> = None;
-        if let Some(modified_by_attr) = item.get("modified_by") {
-            modified_by = Some(modified_by_attr.as_s().ok()?.to_string());
+        if item.get("modified_by").is_some() {
+            let modified_by_str = get_string_value(item, "modified_by")?;
+            modified_by = Some(modified_by_str)
         }
 
-        Some(Project {
+        Ok(Project {
             id,
             name,
             status,

@@ -1,13 +1,13 @@
 use super::{
     dtos::{
-        common_dtos::ErrorResponse, time_track_dtos::CreateTimeTrackDto,
-        time_track_dtos::TimeTrackDto,
+        common_dtos::ErrorResponse,
+        time_track_dtos::{CreateTimeTrackDto, TimeTrackDto},
     },
-    validation::valid_uuid::ValidateUuid,
+    validation::{user_validation::UserValidation, uuid_validation::UuidValidation},
 };
 use crate::{
+    models::user_model::User,
     services::time_track_service::{TimeTrackError, TimeTrackService},
-    User,
 };
 use rocket::{
     delete, get, http::Status, post, put, response::status, routes, serde::json::Json, Route, State,
@@ -21,9 +21,10 @@ pub fn routes() -> Vec<Route> {
 #[post("/timetrack/<project_id>/start")]
 pub async fn start(
     time_track_service: &State<Arc<TimeTrackService>>,
-    user: &State<User>,
-    project_id: ValidateUuid,
+    user: UserValidation,
+    project_id: UuidValidation,
 ) -> Result<Json<TimeTrackDto>, status::Custom<Json<ErrorResponse>>> {
+    let user = &user.0;
     let project_id = project_id.0.to_string();
 
     match time_track_service.start(user, &project_id).await {
@@ -59,9 +60,10 @@ pub async fn start(
 #[post("/timetrack/<project_id>/stop")]
 pub async fn stop(
     time_track_service: &State<Arc<TimeTrackService>>,
-    user: &State<User>,
-    project_id: ValidateUuid,
+    user: UserValidation,
+    project_id: UuidValidation,
 ) -> Result<Json<TimeTrackDto>, status::Custom<Json<ErrorResponse>>> {
+    let user = &user.0;
     let project_id = project_id.0.to_string();
 
     match time_track_service.stop(user, &project_id).await {
@@ -101,9 +103,10 @@ pub async fn stop(
 )]
 pub async fn create(
     time_track_service: &State<Arc<TimeTrackService>>,
-    user: &State<User>,
+    user: UserValidation,
     create_time_track_dto: CreateTimeTrackDto,
 ) -> Result<Json<TimeTrackDto>, status::Custom<Json<ErrorResponse>>> {
+    let user = &user.0;
     let project_id = create_time_track_dto.project_id;
     let started_at = create_time_track_dto.started_at;
     let stopped_at = create_time_track_dto.stopped_at;
@@ -138,9 +141,10 @@ pub async fn create(
 #[get("/timetrack/<project_id>")]
 pub async fn get(
     time_track_service: &State<Arc<TimeTrackService>>,
-    user: &State<User>,
-    project_id: ValidateUuid,
+    user: UserValidation,
+    project_id: UuidValidation,
 ) -> Result<Json<Vec<TimeTrackDto>>, status::Custom<Json<ErrorResponse>>> {
+    let user = &user.0;
     let project_id = project_id.0.to_string();
 
     match time_track_service.get_all(user, &project_id).await {
@@ -179,10 +183,11 @@ pub async fn get(
 )]
 pub async fn update(
     time_track_service: &State<Arc<TimeTrackService>>,
-    user: &State<User>,
-    time_track_id: ValidateUuid,
+    user: UserValidation,
+    time_track_id: UuidValidation,
     update_time_track_dto: CreateTimeTrackDto,
 ) -> Result<Json<TimeTrackDto>, status::Custom<Json<ErrorResponse>>> {
+    let user = &user.0;
     let time_track_id = time_track_id.0.to_string();
     let project_id = update_time_track_dto.project_id;
     let new_started_at = update_time_track_dto.started_at;
@@ -224,10 +229,11 @@ pub async fn update(
 #[delete("/timetrack/<project_id>/<time_track_id>")]
 pub async fn delete(
     time_track_service: &State<Arc<TimeTrackService>>,
-    user: &State<User>,
-    project_id: ValidateUuid,
-    time_track_id: ValidateUuid,
+    user: UserValidation,
+    project_id: UuidValidation,
+    time_track_id: UuidValidation,
 ) -> Result<status::NoContent, status::Custom<Json<ErrorResponse>>> {
+    let user = &user.0;
     let project_id = project_id.0.to_string();
     let time_track_id = time_track_id.0.to_string();
 

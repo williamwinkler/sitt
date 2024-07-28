@@ -3,8 +3,7 @@ use tokio::sync::RwLock;
 use super::time_track_service::TimeTrackService;
 use crate::{
     infrastructure::{database::DbError, project_repository::ProjectRepository},
-    models::project_model::{Project, ProjectStatus},
-    User,
+    models::{project_model::{Project, ProjectStatus}, user_model::{User, UserRole}},
 };
 use std::env;
 use std::{cmp::Ordering, sync::Arc};
@@ -66,13 +65,19 @@ impl ProjectService {
         *service = Some(time_track_service);
     }
 
-    pub async fn create(&self, user: &User, project_name: String) -> Result<(Project), ProjectError> {
+    pub async fn create(
+        &self,
+        user: &User,
+        project_name: String,
+    ) -> Result<Project, ProjectError> {
         // Get existing projects for user
         let existing_projects = self.repository.get_all(&user).await?;
 
-        // Each user can maximum have 15 projects
-        if existing_projects.len() >= self.max_projects {
-            return Err(ProjectError::TooManyProjects);
+        // Each user can maximum have 15 projects (except admins)
+        if user.role != UserRole::Admin {
+            if existing_projects.len() >= self.max_projects {
+                return Err(ProjectError::TooManyProjects);
+            }
         }
 
         // Check if there already is a project with the same name
@@ -83,7 +88,7 @@ impl ProjectService {
         }
 
         // Create the new project
-        let project = Project::new(project_name, user.name.clone());
+        let project = Project::new(project_name, &user.id);
         self.repository.create(&project).await?;
 
         Ok(project)

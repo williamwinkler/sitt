@@ -2,6 +2,7 @@ extern crate dotenv;
 use dotenv::dotenv;
 use infrastructure::{
     project_repository::ProjectRepository, time_track_repository::TimeTrackRepository,
+    user_repository::UserRepository,
 };
 use lambda_web::{is_running_on_lambda, launch_rocket_on_lambda, LambdaError};
 use std::sync::Arc;
@@ -11,21 +12,13 @@ mod infrastructure;
 mod models;
 mod services;
 
-struct User {
-    name: String,
-}
-
 #[rocket::main]
 async fn main() -> Result<(), LambdaError> {
     dotenv().ok();
 
-    // There is only one user for now
-    let user = User {
-        name: String::from("admin"),
-    };
-
     // Infrastructure
     let database = Arc::new(infrastructure::database::Database::new().await);
+    let user_repository = Arc::new(UserRepository::build(database.clone()).await?);
     let project_repository = Arc::new(ProjectRepository::build(database.clone()).await?);
     let time_track_repository = Arc::new(TimeTrackRepository::build(database.clone()).await?);
 
@@ -33,6 +26,10 @@ async fn main() -> Result<(), LambdaError> {
     let project_service = Arc::new(services::project_service::ProjectService::new(
         project_repository.clone(),
         None,
+    ));
+    let user_service = Arc::new(services::user_service::UserService::new(
+        user_repository.clone(),
+        project_service.clone(),
     ));
     let time_track_service = Arc::new(services::time_track_service::TimeTrackService::new(
         time_track_repository.clone(),
@@ -45,9 +42,10 @@ async fn main() -> Result<(), LambdaError> {
 
     // Setup Rocket
     let rocket = rocket::build()
-        .manage(user)
+        .manage(user_service)
         .manage(project_service)
         .manage(time_track_service)
+        .mount("/api/v1", handlers::user_handler::routes())
         .mount("/api/v1", handlers::project_handler::routes())
         .mount("/api/v1", handlers::time_track_handler::routes());
 

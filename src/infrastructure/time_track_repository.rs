@@ -1,7 +1,10 @@
-use super::database::{Database, DbError};
-use crate::{
-    models::time_track_model::{TimeTrack, TimeTrackStatus},
-    User,
+use super::{
+    database::{Database, DbError},
+    utils::{get_datetime_value, get_string_value},
+};
+use crate::models::{
+    time_track_model::{TimeTrack, TimeTrackStatus},
+    user_model::User,
 };
 use aws_sdk_dynamodb::{
     error::SdkError,
@@ -121,13 +124,10 @@ impl TimeTrackRepository {
 
         match result {
             Ok(output) => match output.item {
-                Some(item) => match TimeTrackRepository::convert_item_to_time_track(&item) {
-                    Some(time_track) => Ok(time_track),
-                    None => Err(DbError::Convertion {
-                        table: TABLE_NAME.into(),
-                        id: project_id,
-                    }),
-                },
+                Some(item) => {
+                    let time_track = Self::convert_item_to_time_track(&item)?;
+                    Ok(time_track)
+                }
                 None => Err(DbError::NotFound),
             },
             Err(err) => Err(DbError::Unknown(format!(
@@ -153,7 +153,7 @@ impl TimeTrackRepository {
         );
         expression_attribute_values.insert(
             ":created_by".to_string(),
-            AttributeValue::S(user.name.to_string()),
+            AttributeValue::S(user.id.to_string()),
         );
 
         let result = self
@@ -173,13 +173,8 @@ impl TimeTrackRepository {
             Ok(output) => {
                 if let Some(items) = output.items {
                     if let Some(item) = items.get(0) {
-                        match Self::convert_item_to_time_track(item) {
-                            None => Err(DbError::Convertion {
-                                table: TABLE_NAME.into(),
-                                id: project_id.to_string(),
-                            }),
-                            Some(time_track) => Ok(time_track),
-                        }
+                        let time_track = Self::convert_item_to_time_track(item)?;
+                        Ok(time_track)
                     } else {
                         Err(DbError::NotFound)
                     }
@@ -202,7 +197,7 @@ impl TimeTrackRepository {
         );
         expression_attribute_values.insert(
             ":created_by".to_string(),
-            AttributeValue::S(user.name.to_string()),
+            AttributeValue::S(user.id.to_string()),
         );
 
         let result = self
@@ -221,20 +216,8 @@ impl TimeTrackRepository {
                 Some(items) => {
                     let mut time_track_items = Vec::new();
                     for item in items.iter() {
-                        match TimeTrackRepository::convert_item_to_time_track(item) {
-                            Some(time_track) => time_track_items.push(time_track),
-                            None => {
-                                return Err(DbError::Convertion {
-                                    table: TABLE_NAME.into(),
-                                    id: item
-                                        .get("id")
-                                        .expect("time track item has no id")
-                                        .as_s()
-                                        .expect("time track id must be string")
-                                        .into(),
-                                });
-                            }
-                        }
+                        let time_track = Self::convert_item_to_time_track(item)?;
+                        time_track_items.push(time_track)
                     }
                     Ok(time_track_items)
                 }
@@ -311,25 +294,14 @@ impl TimeTrackRepository {
             .key("project_id", AttributeValue::S(project_id))
             .key("id", AttributeValue::S(time_track_id))
             .condition_expression("created_by = :created_by")
-            .expression_attribute_values(":created_by", AttributeValue::S(user.name.clone()))
+            .expression_attribute_values(":created_by", AttributeValue::S(user.id.clone()))
             .return_values(aws_sdk_dynamodb::types::ReturnValue::AllOld)
             .send()
             .await;
 
         match result {
             Ok(item) => match item.attributes {
-                Some(item) => match TimeTrackRepository::convert_item_to_time_track(&item) {
-                    Some(time_track) => Ok(time_track),
-                    None => Err(DbError::Convertion {
-                        table: TABLE_NAME.into(),
-                        id: item
-                            .get("id")
-                            .expect("time track item has no id")
-                            .as_s()
-                            .expect("time track id must be string")
-                            .into(),
-                    }),
-                },
+                Some(item) => Self::convert_item_to_time_track(&item),
                 None => Err(DbError::NotFound),
             },
             // If there is no time_track matching the expression dynamoDB throws this error => NotFound
@@ -435,35 +407,38 @@ impl TimeTrackRepository {
         item
     }
 
-    fn convert_item_to_time_track(item: &HashMap<String, AttributeValue>) -> Option<TimeTrack> {
-        let id = item.get("id")?.as_s().ok()?.to_string();
-        let project_id = item.get("project_id")?.as_s().ok()?.to_string();
-        let status = item
-            .get("time_tracking_status")?
-            .as_s()
-            .ok()?
-            .parse()
-            .ok()?;
-        let started_at = item
-            .get("started_at")?
-            .as_s()
-            .ok()?
-            .parse::<DateTime<Utc>>()
-            .ok()?;
-        let created_by = item.get("created_by")?.as_s().ok()?.to_string();
+    fn convert_item_to_time_track(
+        item: &HashMap<String, AttributeValue>,
+    ) -> Result<TimeTrack, DbError> {
+        let id = get_string_value(item, "id")?;
+        let project_id = get_string_value(item, "project_id")?;
+        let status = {
+            let status_str = get_string_value(item, "time_tracking_status")?;
+            status_str.parse::<TimeTrackStatus>().map_err(|_| {
+                DbError::Unknown(format!(
+                    "Invalid status value '{}' for item with id {}",
+                    status_str, id
+                ))
+            })?
+        };
+        let started_at = get_datetime_value(item, "started_at")?;
+        let created_by = get_string_value(item, "created_by")?;
 
         let mut stopped_at: Option<DateTime<Utc>> = None;
-        if let Some(stopped_at_attr) = item.get("stopped_at") {
-            stopped_at = stopped_at_attr.as_s().ok()?.parse().ok();
+        if item.get("stopped_at").is_some() {
+            let datetime = get_datetime_value(item, "stopped_at")?;
+            stopped_at = Some(datetime)
         }
         let mut total_duration = Duration::new(0, 0);
-        if let Some(duration_at_attr) = item.get("total_duration") {
-            let duration_as_str = duration_at_attr.as_s().ok()?;
+        if item.get("total_duration").is_some() {
+            let duration_as_str = get_string_value(item, "total_duration")?;
             total_duration = match parse_duration(&duration_as_str) {
                 Ok(duration) => duration,
-                Err(err) => {
-                    eprintln!("{:#?}", err);
-                    return None;
+                Err(_) => {
+                    return Err(DbError::Unknown(format!(
+                        "Failed to parse str duration '{}' of item {}",
+                        duration_as_str, id
+                    )));
                 }
             }
         } else {
@@ -480,7 +455,7 @@ impl TimeTrackRepository {
             created_by,
         };
 
-        Some(time_track)
+        Ok(time_track)
     }
 }
 

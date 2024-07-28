@@ -1,16 +1,15 @@
+use chrono::{DateTime, Utc};
+
 use super::project_service::{ProjectError, ProjectService};
 use crate::{
     infrastructure::{database::DbError, time_track_repository::TimeTrackRepository},
     models::{
         project_model::ProjectStatus,
         time_track_model::{TimeTrack, TimeTrackStatus},
+        user_model::User,
     },
-    User,
 };
-use chrono::{Date, DateTime, Utc};
-use rocket::serde::json::Json;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 #[derive(thiserror::Error, Debug)]
 pub enum TimeTrackError {
@@ -266,8 +265,9 @@ impl TimeTrackService {
             return Ok(());
         }
 
-        let result = self.repository.delete_for_project(project_id).await?;
+        // delete all time track items for the project
+        self.repository.delete_for_project(project_id).await?;
 
-        Ok(result)
+        Ok(())
     }
 }
