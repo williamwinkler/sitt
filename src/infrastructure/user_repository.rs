@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use crate::models::user_model::{User, UserRole};
 use aws_sdk_dynamodb::{
@@ -6,6 +6,7 @@ use aws_sdk_dynamodb::{
     operation::create_table::CreateTableError,
     types::{AttributeDefinition, AttributeValue, KeySchemaElement, KeyType, ScalarAttributeType},
 };
+use tokio::time::sleep;
 
 use super::{
     database::{Database, DbError},
@@ -81,7 +82,7 @@ impl UserRepository {
             .await;
 
         // Check if there is an error creating the table
-        if let Err(SdkError::ServiceError(service_err)) = result {
+        if let Err(SdkError::ServiceError(service_err)) = &result {
             match service_err.err() {
                 CreateTableError::ResourceInUseException(info) => {
                     // If the error is not, that the table already exists => throw error
@@ -99,7 +100,27 @@ impl UserRepository {
             }
         }
 
-        Ok(Self { db })
+        let user_repository = Self { db };
+
+        // If the table was just created, add a default admin user
+        if result.is_ok() {
+            let default_admin_user = User::new("DEFAULT ADMIN", &UserRole::Admin, "SYSTEM");
+            let one_sec  = Duration::new(1, 0);
+
+            // Loop because it can take some time for the DynamoDB table to get created
+            loop {
+                println!("Trying to create default admin user...");
+                let result = user_repository.create(&default_admin_user).await;
+                if result.is_ok() {
+                    break;
+                } else {
+                    sleep(one_sec).await;
+                }
+            }
+            println!("Created DEFAULT ADMIN user. Make sure to create your own ADMIN user and delete this one.");
+        }
+
+        Ok(user_repository)
     }
 
     pub async fn create(&self, user: &User) -> Result<(), DbError> {
