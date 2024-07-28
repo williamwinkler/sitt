@@ -70,8 +70,13 @@ impl UserService {
         Ok(user)
     }
 
-    pub async fn get_by_id(&self, user_id: &str) -> Result<User, UserError> {
-        let user = self.repository.get_by_id(user_id).await?;
+    pub async fn get_by_id(&self, user_id: &str, include_api_key: bool) -> Result<User, UserError> {
+        let mut user = self.repository.get_by_id(user_id).await?;
+
+        if !include_api_key {
+            user.api_key = None;
+        }
+
         Ok(user)
     }
 
@@ -86,7 +91,7 @@ impl UserService {
 
     pub async fn delete(&self, user_id: &str) -> Result<(), UserError> {
         // Delete all projects of the user
-        let user = self.get_by_id(user_id).await?;
+        let user = self.get_by_id(user_id, true).await?;
 
         // Delete all projects by user
         let projects = self.project_service.get_all(&user).await?;
