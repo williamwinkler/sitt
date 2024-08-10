@@ -1,9 +1,12 @@
 use tokio::sync::RwLock;
 
-use super::time_track_service::TimeTrackService;
+use super::time_track_service::{TimeTrackError, TimeTrackService};
 use crate::{
     infrastructure::{database::DbError, project_repository::ProjectRepository},
-    models::{project_model::{Project, ProjectStatus}, user_model::{User, UserRole}},
+    models::{
+        project_model::{Project, ProjectStatus},
+        user_model::{User, UserRole},
+    },
 };
 use std::env;
 use std::{cmp::Ordering, sync::Arc};
@@ -20,6 +23,8 @@ pub enum ProjectError {
     NoTimeTrackService,
     #[error("Unknown error: {0}")]
     Unknown(String),
+    #[error("TimeTrack erro: {0}")]
+    TimeTrackError(TimeTrackError)
 }
 
 impl From<DbError> for ProjectError {
@@ -32,6 +37,12 @@ impl From<DbError> for ProjectError {
             )),
             DbError::Unknown(msg) => ProjectError::Unknown(msg),
         }
+    }
+}
+
+impl From<TimeTrackError> for ProjectError {
+    fn from(error: TimeTrackError) -> Self {
+        ProjectError::TimeTrackError(error)
     }
 }
 
@@ -65,11 +76,7 @@ impl ProjectService {
         *service = Some(time_track_service);
     }
 
-    pub async fn create(
-        &self,
-        user: &User,
-        project_name: String,
-    ) -> Result<Project, ProjectError> {
+    pub async fn create(&self, user: &User, project_name: String) -> Result<Project, ProjectError> {
         // Get existing projects for user
         let existing_projects = self.repository.get_all(&user).await?;
 
@@ -121,11 +128,11 @@ impl ProjectService {
 
             // Map projects, updating the total_duration for ACTIVE projects
             for project in &mut projects {
+                println!("project status: {}",  project.status);
                 if project.status == ProjectStatus::Active {
                     let time_track = time_track_service
                         .get_in_progress(user, &project.id, &project.name)
-                        .await
-                        .expect("There should be a time track in progress");
+                        .await?;
 
                     project.total_duration += time_track.total_duration;
                 }
@@ -148,10 +155,10 @@ impl ProjectService {
                 None => return Err(ProjectError::NoTimeTrackService),
             };
 
+            // There should be a time track object in the DB for the project with status IN_PROGRESS
             let time_track = time_track_service
                 .get_in_progress(user, &project.id, &project.name)
-                .await
-                .expect("There should be a time track in progress");
+                .await?;
 
             project.total_duration += time_track.total_duration;
         }
@@ -198,12 +205,15 @@ impl ProjectService {
             .await
         {
             Ok(_) => (),
-            Err(err) => {
-                return Err(ProjectError::Unknown(format!(
-                    "ProjectService.delete() delete time track items: {:#?}",
-                    err
-                )))
-            }
+            Err(err) => match err {
+                TimeTrackError::ProjectNotFound => (),
+                _ => {
+                    return Err(ProjectError::Unknown(format!(
+                        "ProjectService.delete() delete time track items: {:#?}",
+                        err
+                    )))
+                }
+            },
         }
 
         // Then, execute the project deletion

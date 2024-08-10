@@ -64,7 +64,7 @@ impl TimeTrack {
             started_at: Utc::now(),
             stopped_at: None,
             total_duration: Duration::new(0, 0),
-            created_by: user.name.clone(),
+            created_by: user.id.clone(),
         }
     }
 }

@@ -191,6 +191,12 @@ impl TimeTrackService {
             },
         };
 
+        // Calculate the time it has been running
+        time_track.total_duration = {
+            let time_delta = Utc::now() - time_track.started_at;
+            Duration::new(time_delta.num_seconds() as u64, 0)
+        };
+
         Ok(time_track)
     }
 

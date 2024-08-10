@@ -191,7 +191,7 @@ impl ProjectRepository {
             .table_name(TABLE_NAME)
             .key(
                 "created_by",
-                AttributeValue::S(project.id.to_string()),
+                AttributeValue::S(project.created_by.to_string()),
             )
             .key("id", AttributeValue::S(project.id.to_string()))
             .update_expression(update_expression)
@@ -253,7 +253,7 @@ impl ProjectRepository {
         item.insert(key_status, AttributeValue::S(project.status.to_string()));
         item.insert(
             key_total_duration,
-            AttributeValue::S(format_duration(project.total_duration).to_string()), // TODO: check on durations
+            AttributeValue::S(format_duration(project.total_duration).to_string()),
         );
         item.insert(
             key_created_at,
