@@ -1,0 +1,23 @@
+[package]
+name = "sitt-cli"
+version = "0.1.0"
+edition = "2021"
+description = "CLI tool for Simple Time Tracking application"
+authors = ["William Winkler"]
+
+# Specify the binary target
+[[bin]]
+name = "sitt"
+path = "main.rs"
+
+[dependencies]
+
+colored = "2.1.0"
+inquire = { version = "0.7.5", features = ["date"] }
+etcetera = "0.8.0"
+humantime = "2.1.0"
+dotenv = "0.15.0"
+rand = "0.8.5"
+clap = { version = "4.5.15", features = ["cargo", "derive"] }
+
+# Add other dependencies specific to the CLI

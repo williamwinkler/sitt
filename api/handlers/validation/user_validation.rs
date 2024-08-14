@@ -96,7 +96,6 @@ impl<'r> FromRequest<'r> for AdminValidation {
                 ))
             }
             Outcome::Forward(_) => {
-                println!("here");
                 return Outcome::Error((
                     rocket::http::Status::Unauthorized,
                     UserValidationError::Unauthorized,

@@ -1,7 +1,4 @@
-use std::time::Duration;
-
 use crate::models::project_model::{Project, ProjectStatus};
-
 use chrono::{DateTime, Utc};
 use humantime::format_duration;
 use rocket::data::{self, Data, FromData, ToByteUnit};
@@ -9,6 +6,7 @@ use rocket::http::Status;
 use rocket::outcome::Outcome;
 use rocket::request::Request;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 use validator::{Validate, ValidationErrors};
 
 #[derive(Debug)]

@@ -133,9 +133,9 @@ mod tests {
             time_track.status
         );
         assert_eq!(
-            time_track.created_by, user.name,
+            time_track.created_by, user.id,
             "Expected created_by '{}', got '{}'",
-            user.name, time_track.created_by
+            user.id, time_track.created_by
         );
         assert!(
             time_track.stopped_at.is_none(),
