@@ -18,7 +18,7 @@ impl<'r> FromParam<'r> for UuidValidation {
             Err(err) => Err(status::Custom(
                 Status::UnprocessableEntity,
                 Json(ErrorResponse {
-                    error_mesage: err.to_string(),
+                    error_message: err.to_string(),
                 }),
             )),
         }

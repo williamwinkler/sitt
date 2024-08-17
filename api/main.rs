@@ -6,11 +6,7 @@ use infrastructure::{
 };
 use lambda_web::{is_running_on_lambda, launch_rocket_on_lambda, LambdaError};
 use std::sync::Arc;
-
-mod handlers;
-mod infrastructure;
-mod models;
-mod services;
+use sitt_api::{handlers, infrastructure, services};
 
 #[rocket::main]
 async fn main() -> Result<(), LambdaError> {

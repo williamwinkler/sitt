@@ -35,13 +35,13 @@ pub async fn start(
             TimeTrackError::ProjectNotFound => Err(status::Custom(
                 Status::NotFound,
                 Json(ErrorResponse {
-                    error_mesage: err.to_string(),
+                    error_message: err.to_string(),
                 }),
             )),
             TimeTrackError::AlreadyTrackingTime(_) => Err(status::Custom(
                 Status::BadRequest,
                 Json(ErrorResponse {
-                    error_mesage: err.to_string(),
+                    error_message: err.to_string(),
                 }),
             )),
             _ => {
@@ -49,7 +49,7 @@ pub async fn start(
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
-                        error_mesage: String::from("An internal error occurred"),
+                        error_message: String::from("An internal error occurred"),
                     }),
                 ))
             }
@@ -74,13 +74,13 @@ pub async fn stop(
             TimeTrackError::ProjectNotFound => Err(status::Custom(
                 Status::NotFound,
                 Json(ErrorResponse {
-                    error_mesage: err.to_string(),
+                    error_message: err.to_string(),
                 }),
             )),
             TimeTrackError::NoInProgressTimeTracking(_) => Err(status::Custom(
                 Status::BadRequest,
                 Json(ErrorResponse {
-                    error_mesage: err.to_string(),
+                    error_message: err.to_string(),
                 }),
             )),
             _ => {
@@ -88,7 +88,7 @@ pub async fn stop(
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
-                        error_mesage: String::from("An internal error occurred"),
+                        error_message: String::from("An internal error occurred"),
                     }),
                 ))
             }
@@ -122,7 +122,7 @@ pub async fn create(
             TimeTrackError::NotFound => Err(status::Custom(
                 Status::NotFound,
                 Json(ErrorResponse {
-                    error_mesage: err.to_string(),
+                    error_message: err.to_string(),
                 }),
             )),
             _ => {
@@ -130,7 +130,7 @@ pub async fn create(
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
-                        error_mesage: String::from("An internal error occurred"),
+                        error_message: String::from("An internal error occurred"),
                     }),
                 ))
             }
@@ -160,7 +160,7 @@ pub async fn get(
             TimeTrackError::ProjectNotFound => Err(status::Custom(
                 Status::NotFound,
                 Json(ErrorResponse {
-                    error_mesage: err.to_string(),
+                    error_message: err.to_string(),
                 }),
             )),
             _ => {
@@ -168,7 +168,7 @@ pub async fn get(
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
-                        error_mesage: String::from("An internal error occurred"),
+                        error_message: String::from("An internal error occurred"),
                     }),
                 ))
             }
@@ -210,7 +210,7 @@ pub async fn update(
             TimeTrackError::NotFound => Err(status::Custom(
                 Status::NotFound,
                 Json(ErrorResponse {
-                    error_mesage: err.to_string(),
+                    error_message: err.to_string(),
                 }),
             )),
             _ => {
@@ -218,7 +218,7 @@ pub async fn update(
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
-                        error_mesage: String::from("An internal error occurred"),
+                        error_message: String::from("An internal error occurred"),
                     }),
                 ))
             }
@@ -246,7 +246,7 @@ pub async fn delete(
             TimeTrackError::NotFound => Err(status::Custom(
                 Status::NotFound,
                 Json(ErrorResponse {
-                    error_mesage: err.to_string(),
+                    error_message: err.to_string(),
                 }),
             )),
             _ => {
@@ -254,7 +254,7 @@ pub async fn delete(
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
-                        error_mesage: String::from("An internal error occurred"),
+                        error_message: String::from("An internal error occurred"),
                     }),
                 ))
             }

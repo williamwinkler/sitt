@@ -9,19 +9,24 @@ authors = ["William Winkler"]
 name = "sitt-api"
 path = "main.rs"
 
+[lib]
+path = "lib.rs"
+
 [dependencies]
-async-trait = "0.1.80"
-aws-config = { version = "1.5.3", features = ["behavior-version-latest"] }
-aws-sdk-dynamodb = { version = "1.36.0", features = ["behavior-version-latest"] }
-chrono = { version = "0.4.38", features = ["serde"] }
+async-trait = { workspace = true }
+chrono = { workspace = true, features = ["serde"] }
 dotenv = "0.15.0"
-humantime = "2.1.0"
+humantime = { workspace = true }
 lambda-web = { version = "0.2.1", features = ["rocket05"] }
-rand = "0.8.5"
+rand = { workspace = true }
 rocket = { version = "0.5.0-rc.2", features = ["json"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 thiserror = "=1.0.63"
 tokio = { version = "1", features = ["full"] }
 uuid = { version = "1.9.1", features = ["v4"] }
 validator = { version = "0.18.1", features = ["derive"] }
+aws-config = { version = "1.5.3", features = ["behavior-version-latest"] }
+aws-sdk-dynamodb = { version = "1.36.0", features = [
+  "behavior-version-latest",
+] }

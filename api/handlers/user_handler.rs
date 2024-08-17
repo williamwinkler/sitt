@@ -35,7 +35,7 @@ pub async fn create(
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
-                        error_mesage: String::from("An internal error occurred"),
+                        error_message: String::from("An internal error occurred"),
                     }),
                 ))
             }
@@ -60,7 +60,7 @@ pub async fn get(
             UserError::NotFound => Err(status::Custom(
                 Status::NotFound,
                 Json(ErrorResponse {
-                    error_mesage: err.to_string(),
+                    error_message: err.to_string(),
                 }),
             )),
             _ => {
@@ -68,7 +68,7 @@ pub async fn get(
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
-                        error_mesage: String::from("An internal error occurred"),
+                        error_message: String::from("An internal error occurred"),
                     }),
                 ))
             }
@@ -93,7 +93,7 @@ pub async fn get_all(
             Err(status::Custom(
                 Status::InternalServerError,
                 Json(ErrorResponse {
-                    error_mesage: String::from("An internal error occurred"),
+                    error_message: String::from("An internal error occurred"),
                 }),
             ))
         }
@@ -115,7 +115,7 @@ pub async fn delete(
             UserError::NotFound => Err(status::Custom(
                 Status::NotFound,
                 Json(ErrorResponse {
-                    error_mesage: err.to_string(),
+                    error_message: err.to_string(),
                 }),
             )),
             _ => {
@@ -123,7 +123,7 @@ pub async fn delete(
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
-                        error_mesage: String::from("An internal error occurred"),
+                        error_message: String::from("An internal error occurred"),
                     }),
                 ))
             }

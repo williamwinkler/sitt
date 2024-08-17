@@ -6,6 +6,8 @@ use std::fmt;
 use std::str::FromStr;
 use uuid::Uuid;
 
+const API_KEY_LENGTH: usize = 32;
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub enum UserRole {
     #[serde(rename = "ADMIN")]
@@ -51,7 +53,7 @@ impl User {
             id: Uuid::new_v4().to_string(),
             name: name.to_string(),
             role: role.clone(),
-            api_key: Some(generate_api_key(32)),
+            api_key: Some(generate_api_key(API_KEY_LENGTH)),
             created_at: Utc::now(),
             created_by: created_by.to_string(),
         }
@@ -83,7 +85,7 @@ mod tests {
         let mut unique_keys = HashSet::with_capacity(100);
 
         for _ in 0..100 {
-            let api_key = generate_api_key(32);
+            let api_key = generate_api_key(API_KEY_LENGTH);
             assert!(unique_keys.insert(api_key), "Duplicate API key found");
         }
 
