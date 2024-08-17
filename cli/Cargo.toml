@@ -2,22 +2,21 @@
 name = "sitt-cli"
 version = "0.1.0"
 edition = "2021"
-description = "CLI tool for Simple Time Tracking application"
+description = "CLI tool for interacting Simple Time Tracking API"
 authors = ["William Winkler"]
 
-# Specify the binary target
 [[bin]]
 name = "sitt"
 path = "main.rs"
 
 [dependencies]
-
+sitt-api = { workspace = true }
 colored = "2.1.0"
 inquire = { version = "0.7.5", features = ["date"] }
 etcetera = "0.8.0"
-humantime = "2.1.0"
-dotenv = "0.15.0"
-rand = "0.8.5"
+humantime = { workspace = true }
 clap = { version = "4.5.15", features = ["cargo", "derive"] }
-
-# Add other dependencies specific to the CLI
+url = "2.5.2"
+thiserror = { workspace = true }
+toml = "0.8.19"
+serde.workspace = true
