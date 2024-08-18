@@ -1,10 +1,10 @@
 use chrono::{self, DateTime, Utc};
 use core::fmt;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{str::FromStr, time::Duration};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ProjectStatus {
     #[serde(rename = "ACTIVE")]
     Active,

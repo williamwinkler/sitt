@@ -4,9 +4,16 @@ use config::{Config, ConfigError};
 use std::process::exit;
 
 mod config;
+mod project;
+mod sitt_client;
+mod utils;
 
 #[derive(Parser)]
-#[command(author, version, about = "sitt is a Simple Time Trackin application")]
+#[command(
+    author,
+    version,
+    about = "Use this CLI tool to interact with the (Si)mple (T)ime (T)racking API ⏱️"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -73,10 +80,10 @@ impl Command {
             Command::Start => println!("CHECKING IN..."),
             Command::Stop => println!("CHECKING OUT..."),
             Command::Project(project_command) => match project_command {
-                ProjectCommand::Create(args) => println!("Creating project... {}", args.name),
+                ProjectCommand::Create(args) => project::create_project(&config, args.name),
                 ProjectCommand::Update => println!("Update project..."),
                 ProjectCommand::Delete => println!("Delete project..."),
-                ProjectCommand::List => println!("List projects..."),
+                ProjectCommand::List => project::get_projects(&config),
             },
         }
     }

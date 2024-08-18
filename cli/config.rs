@@ -94,10 +94,10 @@ impl Config {
         config
     }
 
-    pub fn get_api_key(&self) -> String {
-        String::from(self.api_key.clone())
+    pub fn get_api_key(&self) -> &str {
+        &self.api_key
     }
-    pub fn get_url(&self) -> String {
-        String::from(self.sitt_url.clone())
+    pub fn get_url(&self) -> &str {
+        &self.sitt_url
     }
 }
