@@ -48,6 +48,8 @@ impl Config {
         let length_validator = |input: &str| {
             if input.chars().count() == 0 {
                 Ok(Validation::Invalid("You have to enter something.".into()))
+            } else if input.chars().count() > 25 {
+                Ok(Validation::Invalid("Too long.".into()))
             } else {
                 Ok(Validation::Valid)
             }

@@ -5,6 +5,7 @@ use std::process::exit;
 
 mod config;
 mod project;
+mod timetrack;
 mod sitt_client;
 mod utils;
 
@@ -22,9 +23,9 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     #[command(about = "Start time tracking on a project")]
-    Start,
+    Start(ProjectArgs),
     #[command(about = "Stop time tracking on a project")]
-    Stop,
+    Stop(ProjectArgs),
     #[command(subcommand, about = "Manage projects")]
     Project(ProjectCommand),
     #[command(about = "Run inital setup")]
@@ -34,19 +35,27 @@ enum Command {
 #[derive(Subcommand)]
 enum ProjectCommand {
     #[command(about = "Create a project")]
-    Create(ProjectArgs),
+    Create(CreateProjectArgs),
     #[command(about = "Update a project")]
-    Update,
+    Update(ProjectArgs),
     #[command(about = "Delete a project")]
-    Delete,
+    Delete(ProjectArgs),
+    #[command(about = "Get a project by name")]
+    Get(ProjectArgs),
     #[command(visible_alias = "ls", about = "List a projects")]
     List,
 }
 
 #[derive(Args)]
-struct ProjectArgs {
+struct CreateProjectArgs {
     #[arg(short, long)]
     name: String,
+}
+
+#[derive(Args)]
+struct ProjectArgs {
+    #[arg(short, long)]
+    name: Option<String>,
 }
 
 impl Command {
@@ -77,12 +86,54 @@ impl Command {
             Command::Setup => {
                 config::Config::setup();
             }
-            Command::Start => println!("CHECKING IN..."),
-            Command::Stop => println!("CHECKING OUT..."),
+            Command::Start(args) => {
+                let project_name = if let Some(project_name) = args.name {
+                    project_name
+                } else {
+                    project::select_project(&config, "start tracking on")
+                };
+
+                timetrack::start_time_tracking(&config, &project_name);
+            },
+            Command::Stop(args) => {
+                let project_name = if let Some(project_name) = args.name {
+                    project_name
+                } else {
+                    project::select_project(&config, "stop tracking on")
+                };
+
+                timetrack::start_time_tracking(&config, &project_name);
+            },
             Command::Project(project_command) => match project_command {
                 ProjectCommand::Create(args) => project::create_project(&config, args.name),
-                ProjectCommand::Update => println!("Update project..."),
-                ProjectCommand::Delete => println!("Delete project..."),
+                ProjectCommand::Update(args) => {
+                    let project_name = if let Some(project_name) = args.name {
+                        project_name
+                    } else {
+                        project::select_project(&config, "update")
+                    };
+
+                    project::update_project(&config, &project_name)
+                }
+                ProjectCommand::Delete(args) => {
+                    let project_name = if let Some(project_name) = args.name {
+                        project_name
+                    } else {
+                        project::select_project(&config, "delete")
+                    };
+
+                    project::delete_project(&config, &project_name)
+                }
+
+                ProjectCommand::Get(args) => {
+                    let project_name = if let Some(project_name) = args.name {
+                        project_name
+                    } else {
+                        project::select_project(&config, "get")
+                    };
+
+                    project::get_project_by_name(&config, &project_name)
+                }
                 ProjectCommand::List => project::get_projects(&config),
             },
         }

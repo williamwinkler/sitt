@@ -11,6 +11,7 @@ path = "main.rs"
 
 [dependencies]
 sitt-api = { workspace = true }
+chrono = { workspace = true }
 colored = "2.1.0"
 inquire = { version = "0.7.5", features = ["date"] }
 etcetera = "0.8.0"

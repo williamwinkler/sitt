@@ -1,18 +1,19 @@
-use std::time::Duration;
-
+use crate::config::Config;
 use reqwest::{
     self,
     blocking::Client,
     header::{HeaderMap, HeaderValue},
 };
-use sitt_api::handlers::dtos::{
-    common_dtos::ErrorResponse,
-    project_dtos::{CreateProjectDto, ProjectDto},
+use sitt_api::{
+    handlers::dtos::{
+        common_dtos::ErrorResponse,
+        project_dtos::{CreateProjectDto, ProjectDto}, time_track_dtos::TimeTrackDto,
+    },
+    models::project_model::Project,
 };
+use std::time::Duration;
 use thiserror::Error;
 use url::Url;
-
-use crate::config::Config;
 
 #[derive(Error, Debug)]
 pub enum ClientError {
@@ -31,7 +32,7 @@ pub enum ClientError {
     #[error("Request failed: {0}")]
     RequestFailed(String),
     #[error("Failed to parse response body: {0}")]
-    ParseResponseBodyFailed(String), // Added variant for parsing failures
+    ParseResponseBodyFailed(String),
     #[error(transparent)]
     ReqwestError(#[from] reqwest::Error),
 }
@@ -147,6 +148,17 @@ pub fn create_project(
     Ok(project)
 }
 
+pub fn get_project_by_id(config: &Config, project_id: &str) -> Result<ProjectDto, ClientError> {
+    let api = ApiClient::build(config)?;
+    let url = api.build_url(&format!("{}/{}", PROJECTS_PATH, project_id.clone()));
+
+    let response = api.client.get(url).send()?;
+
+    let project = api.handle_response::<ProjectDto>(response)?;
+
+    Ok(project)
+}
+
 pub fn get_projects(config: &Config) -> Result<Vec<ProjectDto>, ClientError> {
     let api = ApiClient::build(config)?;
     let url = api.build_url(PROJECTS_PATH);
@@ -156,6 +168,26 @@ pub fn get_projects(config: &Config) -> Result<Vec<ProjectDto>, ClientError> {
     let projects = api.handle_response::<Vec<ProjectDto>>(response)?;
 
     Ok(projects)
+}
+
+pub fn update_project(
+    config: &Config,
+    project_id: &str,
+    update_project_dto: &CreateProjectDto,
+) -> Result<ProjectDto, ClientError> {
+    let api = ApiClient::build(config)?;
+    let url = api.build_url(&format!("{}/{}", PROJECTS_PATH, project_id.clone()));
+
+    let response = api
+        .client
+        .put(url)
+        .json(update_project_dto)
+        .send()
+        .map_err(|err| ClientError::BuildRequest(err.to_string()))?;
+
+    let project = api.handle_response(response)?;
+
+    Ok(project)
 }
 
 pub fn delete_project(config: &Config, project_id: &str) -> Result<(), ClientError> {
@@ -168,4 +200,8 @@ pub fn delete_project(config: &Config, project_id: &str) -> Result<(), ClientErr
     api.handle_response::<()>(response)?;
 
     Ok(())
+}
+
+pub fn start_time_tracking(config: &Config, project_id: &str) -> Result<TimeTrackDto, ClientError> {
+
 }
