@@ -4,14 +4,12 @@ use reqwest::{
     blocking::Client,
     header::{HeaderMap, HeaderValue},
 };
-use sitt_api::{
-    handlers::dtos::{
-        common_dtos::ErrorResponse,
-        project_dtos::{CreateProjectDto, ProjectDto}, time_track_dtos::TimeTrackDto,
-    },
-    models::project_model::Project,
+use sitt_api::handlers::dtos::{
+    common_dtos::ErrorResponse,
+    project_dtos::{CreateProjectDto, ProjectDto},
+    time_track_dtos::TimeTrackDto,
 };
-use std::time::Duration;
+use std::{io::Read, time::Duration};
 use thiserror::Error;
 use url::Url;
 
@@ -38,7 +36,7 @@ pub enum ClientError {
 }
 
 const PROJECTS_PATH: &str = "/api/v1/projects";
-const TIME_TRACKS_PATH: &str = "/api/v1/timetracks";
+const TIME_TRACKS_PATH: &str = "/api/v1/timetrack";
 const USERS_PATH: &str = "/api/v1/users";
 
 struct ApiClient {
@@ -76,7 +74,7 @@ impl ApiClient {
 
     fn handle_response<T: serde::de::DeserializeOwned>(
         &self,
-        response: reqwest::blocking::Response,
+        mut response: reqwest::blocking::Response,
     ) -> Result<T, ClientError> {
         match response.status() {
             reqwest::StatusCode::OK
@@ -203,5 +201,27 @@ pub fn delete_project(config: &Config, project_id: &str) -> Result<(), ClientErr
 }
 
 pub fn start_time_tracking(config: &Config, project_id: &str) -> Result<TimeTrackDto, ClientError> {
+    let api = ApiClient::build(config)?;
+    let path = &format!("{}/{}/start", TIME_TRACKS_PATH, project_id);
+    let url = api.build_url(path);
 
+    println!("{url}");
+
+    let response = api.client.post(url).send()?;
+
+    let timetrack = api.handle_response::<TimeTrackDto>(response)?;
+
+    Ok(timetrack)
+}
+
+pub fn stop_time_tracking(config: &Config, project_id: &str) -> Result<TimeTrackDto, ClientError> {
+    let api = ApiClient::build(config)?;
+    let path = &format!("{}/{}/stop", TIME_TRACKS_PATH, project_id);
+    let url = api.build_url(path);
+
+    let response = api.client.post(url).send()?;
+
+    let timetrack = api.handle_response::<TimeTrackDto>(response)?;
+
+    Ok(timetrack)
 }

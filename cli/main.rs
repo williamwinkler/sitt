@@ -102,7 +102,7 @@ impl Command {
                     project::select_project(&config, "stop tracking on")
                 };
 
-                timetrack::start_time_tracking(&config, &project_name);
+                timetrack::stop_time_tracking(&config, &project_name);
             },
             Command::Project(project_command) => match project_command {
                 ProjectCommand::Create(args) => project::create_project(&config, args.name),
