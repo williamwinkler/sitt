@@ -43,7 +43,7 @@ impl<'r> FromData<'r> for CreateTimeTrackDto {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TimeTrackDto {
     pub time_track_id: String,
     pub project_id: String,

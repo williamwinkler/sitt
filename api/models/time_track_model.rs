@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
 use std::time::Duration;
@@ -7,11 +7,11 @@ use uuid::Uuid;
 
 use super::user_model::User;
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum TimeTrackStatus {
-    #[serde(rename(serialize = "IN_PROGRESS"))]
+    #[serde(rename = "IN_PROGRESS")]
     InProgress,
-    #[serde(rename(serialize = "FINISHED"))]
+    #[serde(rename = "FINISHED")]
     Finished,
 }
 
