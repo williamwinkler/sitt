@@ -47,9 +47,17 @@ impl Config {
 
         let length_validator = |input: &str| {
             if input.chars().count() == 0 {
-                Ok(Validation::Invalid("You have to enter something.".into()))
+                Ok::<Validation, String>(Validation::Invalid("You have to enter something.".into()))
             } else if input.chars().count() > 25 {
                 Ok(Validation::Invalid("Too long.".into()))
+            } else {
+                Ok(Validation::Valid)
+            }
+        };
+
+        let api_key_validator = |input: &str| {
+            if (input.chars().count() != 32) {
+                Ok(Validation::Invalid("Invalid API key, try again".into()))
             } else {
                 Ok(Validation::Valid)
             }
@@ -73,7 +81,7 @@ impl Config {
             .expect("sitt_url failed prompting");
 
         let api_key = Text::new(&format!("{} API key:", "sitt".color(Color::Yellow)))
-            .with_validator(length_validator)
+            .with_validator(api_key_validator)
             .prompt()
             .expect("api_key failed prompting");
 
