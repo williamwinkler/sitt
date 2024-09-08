@@ -12,14 +12,15 @@ path = "main.rs"
 [dependencies]
 sitt-api = { workspace = true }
 chrono = { workspace = true }
+humantime = { workspace = true }
+thiserror = { workspace = true }
+serde.workspace = true
+serde_json.workspace = true
+indicatif = "0.17.8"
 colored = "2.1.0"
 inquire = { version = "0.7.5", features = ["date"] }
 etcetera = "0.8.0"
-humantime = { workspace = true }
 clap = { version = "4.5.15", features = ["cargo", "derive"] }
 url = "2.5.2"
-thiserror = { workspace = true }
 toml = "0.8.19"
-serde.workspace = true
 reqwest = { version = "0.12.5", features = ["blocking", "json"] }
-serde_json.workspace = true

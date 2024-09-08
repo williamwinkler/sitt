@@ -3,7 +3,6 @@ use colored::{Color, Colorize};
 use sitt_api::{
     handlers::dtos::time_track_dtos::TimeTrackDto, models::time_track_model::TimeTrackStatus,
 };
-use toml::value::Datetime;
 
 use crate::{
     config::Config,
@@ -47,7 +46,9 @@ fn print_time_track(timetrack: &TimeTrackDto) {
 NAME:         {}
 STATUS:       {}
 STARTED AT:   {}"#,
-        timetrack.project_name, status_with_color, timetrack.started_at
+        timetrack.project_name.color(Color::Cyan),
+        status_with_color,
+        local_created_at
     );
 
     if let Some(stopped_at) = timetrack.stopped_at {

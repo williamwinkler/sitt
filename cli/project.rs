@@ -1,18 +1,19 @@
 use crate::{
     config::Config,
     sitt_client,
-    utils::{self, print_and_exit_on_error},
+    utils::{self, get_spinner, print_and_exit_on_error},
 };
 use chrono::{DateTime, Local};
 use colored::{Color, Colorize};
 use etcetera::{self, BaseStrategy};
+use indicatif::{ProgressBar, ProgressStyle};
 use inquire::{validator::Validation, Select, Text};
 use serde::{Deserialize, Serialize};
 use sitt_api::{
     handlers::dtos::project_dtos::{CreateProjectDto, ProjectDto},
     models::project_model::ProjectStatus,
 };
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, process::exit, time::Duration};
 use thiserror::Error;
 
 const CACHE_FILE: &str = "sitt-projects.toml";
@@ -23,6 +24,12 @@ pub enum ProjectError {
     NoProjectWithName(String),
     #[error("Failed finding ID for project {0} in cache")]
     CacheError(String),
+}
+
+pub enum ProjectSelectOption {
+    None,
+    Active,
+    InActive,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -42,6 +49,7 @@ pub fn create_project(config: &Config, name: String) {
 }
 
 pub fn get_project_by_name(config: &Config, name: &str) {
+    
     let project_id_result = get_project_id_by_name(config, name);
     let project_id = print_and_exit_on_error(project_id_result);
 
@@ -83,9 +91,13 @@ pub fn delete_project(config: &Config, name: &str) {
     let project_id = print_and_exit_on_error(project_id_result);
 
     let api_response = sitt_client::delete_project(config, &project_id);
+
     utils::print_and_exit_on_error(api_response);
 
-    println!("Project '{}' was succesfully deleted ✅", name);
+    println!(
+        "Project {} was succesfully deleted ✅",
+        name.color(Color::Cyan)
+    );
 }
 
 pub fn get_projects(config: &Config) {
@@ -100,14 +112,40 @@ pub fn get_projects(config: &Config) {
     }
 }
 
-pub fn select_project(config: &Config, action: &str) -> String {
+pub fn select_project(config: &Config, action: &str, select_option: ProjectSelectOption) -> String {
     let result = sitt_client::get_projects(config);
     let projects = utils::print_and_exit_on_error(result);
 
-    let options: Vec<&str> = projects.iter().map(|p| p.name.as_str()).collect();
-    let project_name = Select::new(&format!("Which project do you want to {}?:", action), options)
-        .prompt()
-        .expect("Failed prompting which project to select");
+    let mut options: Vec<&str> = Vec::new();
+    match select_option {
+        ProjectSelectOption::None => options = projects.iter().map(|p| p.name.as_str()).collect(),
+        ProjectSelectOption::Active => {
+            options = projects
+                .iter()
+                .filter(|p| p.status == ProjectStatus::Active)
+                .map(|p| p.name.as_str())
+                .collect()
+        }
+        ProjectSelectOption::InActive => {
+            options = projects
+                .iter()
+                .filter(|p| p.status == ProjectStatus::Inactive)
+                .map(|p| p.name.as_str())
+                .collect()
+        }
+    }
+
+    if (options.len() == 0) {
+        println!("No projects to {} 👀", action);
+        exit(0);
+    }
+
+    let project_name = Select::new(
+        &format!("Which project do you want to {}?:", action),
+        options,
+    )
+    .prompt()
+    .expect("Failed prompting which project to select");
 
     project_name.to_string()
 }
@@ -128,7 +166,10 @@ NAME:         {}
 STATUS:       {}
 TIME LOGGED:  {}
 CREATED AT:   {}"#,
-        project.name, status_with_color, project.total_duration, local_created_at
+        project.name.color(Color::Cyan),
+        status_with_color,
+        project.total_duration,
+        local_created_at
     );
 
     if let Some(modified_at) = project.modified_at {

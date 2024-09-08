@@ -1,6 +1,7 @@
 use clap::{command, Args, Parser, Subcommand};
 use colored::{Color, Colorize};
 use config::{Config, ConfigError};
+use project::ProjectSelectOption;
 use std::process::exit;
 
 mod config;
@@ -90,7 +91,7 @@ impl Command {
                 let project_name = if let Some(project_name) = args.name {
                     project_name
                 } else {
-                    project::select_project(&config, "start tracking on")
+                    project::select_project(&config, "start tracking on", ProjectSelectOption::InActive)
                 };
 
                 timetrack::start_time_tracking(&config, &project_name);
@@ -99,7 +100,7 @@ impl Command {
                 let project_name = if let Some(project_name) = args.name {
                     project_name
                 } else {
-                    project::select_project(&config, "stop tracking on")
+                    project::select_project(&config, "stop tracking on", ProjectSelectOption::Active)
                 };
 
                 timetrack::stop_time_tracking(&config, &project_name);
@@ -110,7 +111,7 @@ impl Command {
                     let project_name = if let Some(project_name) = args.name {
                         project_name
                     } else {
-                        project::select_project(&config, "update")
+                        project::select_project(&config, "update", ProjectSelectOption::None)
                     };
 
                     project::update_project(&config, &project_name)
@@ -119,7 +120,7 @@ impl Command {
                     let project_name = if let Some(project_name) = args.name {
                         project_name
                     } else {
-                        project::select_project(&config, "delete")
+                        project::select_project(&config, "delete", ProjectSelectOption::None)
                     };
 
                     project::delete_project(&config, &project_name)
@@ -129,7 +130,7 @@ impl Command {
                     let project_name = if let Some(project_name) = args.name {
                         project_name
                     } else {
-                        project::select_project(&config, "get")
+                        project::select_project(&config, "get", ProjectSelectOption::None)
                     };
 
                     project::get_project_by_name(&config, &project_name)

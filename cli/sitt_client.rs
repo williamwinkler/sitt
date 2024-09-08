@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::{config::Config, utils::get_spinner};
 use reqwest::{
     self,
     blocking::Client,
@@ -134,12 +134,14 @@ pub fn create_project(
     let api = ApiClient::build(config)?;
     let url = api.build_url(PROJECTS_PATH);
 
+    let spinner = get_spinner(String::from("Creating project..."));
     let response = api
         .client
         .post(url)
         .json(create_project_dto)
         .send()
         .map_err(|err| ClientError::BuildRequest(err.to_string()))?;
+    spinner.finish_and_clear();
 
     let project = api.handle_response::<ProjectDto>(response)?;
 
@@ -150,7 +152,9 @@ pub fn get_project_by_id(config: &Config, project_id: &str) -> Result<ProjectDto
     let api = ApiClient::build(config)?;
     let url = api.build_url(&format!("{}/{}", PROJECTS_PATH, project_id.clone()));
 
+    let spinner = get_spinner(String::from("Fetching project..."));
     let response = api.client.get(url).send()?;
+    spinner.finish_and_clear();
 
     let project = api.handle_response::<ProjectDto>(response)?;
 
@@ -161,7 +165,9 @@ pub fn get_projects(config: &Config) -> Result<Vec<ProjectDto>, ClientError> {
     let api = ApiClient::build(config)?;
     let url = api.build_url(PROJECTS_PATH);
 
+    let spinner = get_spinner(String::from("Fetching projects..."));
     let response = api.client.get(url).send()?;
+    spinner.finish_and_clear();
 
     let projects = api.handle_response::<Vec<ProjectDto>>(response)?;
 
@@ -176,12 +182,14 @@ pub fn update_project(
     let api = ApiClient::build(config)?;
     let url = api.build_url(&format!("{}/{}", PROJECTS_PATH, project_id.clone()));
 
+    let spinner = get_spinner(String::from("Updating project..."));
     let response = api
         .client
         .put(url)
         .json(update_project_dto)
         .send()
         .map_err(|err| ClientError::BuildRequest(err.to_string()))?;
+    spinner.finish_and_clear();
 
     let project = api.handle_response(response)?;
 
@@ -193,7 +201,9 @@ pub fn delete_project(config: &Config, project_id: &str) -> Result<(), ClientErr
     let path = &format!("{}/{}", PROJECTS_PATH, project_id);
     let url = api.build_url(path);
 
+    let spinner = get_spinner(String::from("Deleting project..."));
     let response = api.client.delete(url).send()?;
+    spinner.finish_and_clear();
 
     api.handle_response::<()>(response)?;
 
@@ -205,9 +215,9 @@ pub fn start_time_tracking(config: &Config, project_id: &str) -> Result<TimeTrac
     let path = &format!("{}/{}/start", TIME_TRACKS_PATH, project_id);
     let url = api.build_url(path);
 
-    println!("{url}");
-
+    let spinner = get_spinner(String::from("Starting time tracking on project..."));
     let response = api.client.post(url).send()?;
+    spinner.finish_and_clear();
 
     let timetrack = api.handle_response::<TimeTrackDto>(response)?;
 
@@ -219,7 +229,9 @@ pub fn stop_time_tracking(config: &Config, project_id: &str) -> Result<TimeTrack
     let path = &format!("{}/{}/stop", TIME_TRACKS_PATH, project_id);
     let url = api.build_url(path);
 
+    let spinner = get_spinner(String::from("Stopping time tracking on project..."));
     let response = api.client.post(url).send()?;
+    spinner.finish_and_clear();
 
     let timetrack = api.handle_response::<TimeTrackDto>(response)?;
 
