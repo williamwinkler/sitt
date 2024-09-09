@@ -2534,6 +2534,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "sitt"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "clap",
+ "colored",
+ "etcetera",
+ "humantime",
+ "indicatif",
+ "inquire",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sitt-api",
+ "thiserror",
+ "toml",
+ "url",
+]
+
+[[package]]
 name = "sitt-api"
 version = "0.1.0"
 dependencies = [
@@ -2552,26 +2572,6 @@ dependencies = [
  "tokio",
  "uuid",
  "validator",
-]
-
-[[package]]
-name = "sitt-cli"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "clap",
- "colored",
- "etcetera",
- "humantime",
- "indicatif",
- "inquire",
- "reqwest",
- "serde",
- "serde_json",
- "sitt-api",
- "thiserror",
- "toml",
- "url",
 ]
 
 [[package]]

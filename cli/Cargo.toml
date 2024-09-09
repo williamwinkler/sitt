@@ -1,5 +1,5 @@
 [package]
-name = "sitt-cli"
+name = "sitt"
 version = "0.1.0"
 edition = "2021"
 description = "CLI tool for interacting Simple Time Tracking API"

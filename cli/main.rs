@@ -1,13 +1,13 @@
 use clap::{command, Args, Parser, Subcommand};
 use colored::{Color, Colorize};
 use config::{Config, ConfigError};
-use project::ProjectSelectOption;
+use project::{get_project_name_from_input, ProjectSelectOption};
 use std::process::exit;
 
 mod config;
 mod project;
-mod timetrack;
 mod sitt_client;
+mod timetrack;
 mod utils;
 
 #[derive(Parser)]
@@ -27,16 +27,16 @@ enum Command {
     Start(ProjectArgs),
     #[command(about = "Stop time tracking on a project")]
     Stop(ProjectArgs),
-    #[command(subcommand, about = "Manage projects")]
+    #[command(subcommand, about = "Manage your projects")]
     Project(ProjectCommand),
-    #[command(about = "Run inital setup")]
-    Setup,
+    #[command(subcommand, about = "Manage your configuration")]
+    Config(ConfigCommand),
 }
 
 #[derive(Subcommand)]
 enum ProjectCommand {
     #[command(about = "Create a project")]
-    Create(CreateProjectArgs),
+    Create(ProjectArgs),
     #[command(about = "Update a project")]
     Update(ProjectArgs),
     #[command(about = "Delete a project")]
@@ -47,10 +47,12 @@ enum ProjectCommand {
     List,
 }
 
-#[derive(Args)]
-struct CreateProjectArgs {
-    #[arg(short, long)]
-    name: String,
+#[derive(Subcommand)]
+enum ConfigCommand {
+    #[command(about = "Run configuration setup")]
+    Set,
+    #[command(about = "Get your configuration")]
+    Get,
 }
 
 #[derive(Args)]
@@ -84,29 +86,41 @@ impl Command {
         });
 
         match args.command {
-            Command::Setup => {
-                config::Config::setup();
-            }
             Command::Start(args) => {
                 let project_name = if let Some(project_name) = args.name {
                     project_name
                 } else {
-                    project::select_project(&config, "start tracking on", ProjectSelectOption::InActive)
+                    project::select_project(
+                        &config,
+                        "start tracking on",
+                        ProjectSelectOption::InActive,
+                    )
                 };
 
                 timetrack::start_time_tracking(&config, &project_name);
-            },
+            }
             Command::Stop(args) => {
                 let project_name = if let Some(project_name) = args.name {
                     project_name
                 } else {
-                    project::select_project(&config, "stop tracking on", ProjectSelectOption::Active)
+                    project::select_project(
+                        &config,
+                        "stop tracking on",
+                        ProjectSelectOption::Active,
+                    )
                 };
 
                 timetrack::stop_time_tracking(&config, &project_name);
-            },
+            }
             Command::Project(project_command) => match project_command {
-                ProjectCommand::Create(args) => project::create_project(&config, args.name),
+                ProjectCommand::Create(args) => {
+                    let project_name = if let Some(project_name) = args.name {
+                        project_name
+                    } else {
+                        get_project_name_from_input()
+                    };
+                    project::create_project(&config, project_name)
+                }
                 ProjectCommand::Update(args) => {
                     let project_name = if let Some(project_name) = args.name {
                         project_name
@@ -136,6 +150,16 @@ impl Command {
                     project::get_project_by_name(&config, &project_name)
                 }
                 ProjectCommand::List => project::get_projects(&config),
+            },
+            Command::Config(config_command) => match config_command {
+                ConfigCommand::Set => {
+                    Config::setup();
+                }
+                ConfigCommand::Get => {
+                    println!("🔑 Your configuration:");
+                    println!("{} URL: {}", "sitt".color(Color::Yellow), &config.get_url(),);
+                    println!("API key:  {}", &config.get_api_key())
+                }
             },
         }
     }

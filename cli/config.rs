@@ -45,16 +45,6 @@ impl Config {
     pub fn setup() -> Self {
         println!("Setup configuration:");
 
-        let length_validator = |input: &str| {
-            if input.chars().count() == 0 {
-                Ok::<Validation, String>(Validation::Invalid("You have to enter something.".into()))
-            } else if input.chars().count() > 25 {
-                Ok(Validation::Invalid("Too long.".into()))
-            } else {
-                Ok(Validation::Valid)
-            }
-        };
-
         let api_key_validator = |input: &str| {
             if (input.chars().count() != 32) {
                 Ok(Validation::Invalid("Invalid API key, try again".into()))
@@ -111,3 +101,4 @@ impl Config {
         &self.sitt_url
     }
 }
+

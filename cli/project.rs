@@ -49,7 +49,6 @@ pub fn create_project(config: &Config, name: String) {
 }
 
 pub fn get_project_by_name(config: &Config, name: &str) {
-    
     let project_id_result = get_project_id_by_name(config, name);
     let project_id = print_and_exit_on_error(project_id_result);
 
@@ -148,6 +147,14 @@ pub fn select_project(config: &Config, action: &str, select_option: ProjectSelec
     .expect("Failed prompting which project to select");
 
     project_name.to_string()
+}
+
+pub fn get_project_name_from_input() -> String {
+    let project_name = Text::new("Project name:")
+        .prompt()
+        .expect("Failed prompting project name");
+
+    project_name
 }
 
 fn print_project(project: &ProjectDto) {
