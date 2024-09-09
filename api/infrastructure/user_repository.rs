@@ -227,19 +227,19 @@ impl UserRepository {
                     let user = Self::convert_item_to_user(item)?;
                     users.push(user);
                 }
-                return Ok(users);
+                Ok(users)
             } else {
-                return Err(DbError::NotFound);
+                Err(DbError::NotFound)
             }
         } else {
-            return Err(DbError::NotFound);
+            Err(DbError::NotFound)
         }
     }
 
     pub async fn delete(&self, user: &User) -> Result<(), DbError> {
         let api_key = match &user.api_key {
             Some(key) => key.clone(),
-            None => return Err(DbError::Unknown(format!("User api_key is missing"))),
+            None => return Err(DbError::Unknown("User api_key is missing".to_string())),
         };
 
         let result = self

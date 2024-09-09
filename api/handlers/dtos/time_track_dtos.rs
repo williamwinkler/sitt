@@ -60,7 +60,7 @@ impl TimeTrackDto {
         TimeTrackDto {
             time_track_id: t.id,
             project_id: t.project_id,
-            project_name: project_name,
+            project_name,
             status: t.status,
             started_at: t.started_at,
             stopped_at: t.stopped_at,

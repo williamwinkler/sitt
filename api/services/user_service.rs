@@ -3,7 +3,6 @@ use std::sync::Arc;
 use crate::{
     infrastructure::{
         database::DbError,
-        project_repository::{self, ProjectRepository},
         user_repository::UserRepository,
     },
     models::user_model::{User, UserRole},

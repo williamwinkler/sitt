@@ -6,7 +6,6 @@ use super::{
     validation::{user_validation::UserValidation, uuid_validation::UuidValidation},
 };
 use crate::{
-    models::user_model::User,
     services::time_track_service::{TimeTrackError, TimeTrackService},
 };
 use rocket::{
@@ -45,7 +44,7 @@ pub async fn start(
                 }),
             )),
             _ => {
-                eprintln!("{}", err.to_string());
+                eprintln!("{}", err);
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
@@ -84,7 +83,7 @@ pub async fn stop(
                 }),
             )),
             _ => {
-                eprintln!("{}", err.to_string());
+                eprintln!("{}", err);
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
@@ -126,7 +125,7 @@ pub async fn create(
                 }),
             )),
             _ => {
-                eprintln!("{}", err.to_string());
+                eprintln!("{}", err);
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
@@ -164,7 +163,7 @@ pub async fn get(
                 }),
             )),
             _ => {
-                eprintln!("{}", err.to_string());
+                eprintln!("{}", err);
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
@@ -214,7 +213,7 @@ pub async fn update(
                 }),
             )),
             _ => {
-                eprintln!("{}", err.to_string());
+                eprintln!("{}", err);
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
@@ -250,7 +249,7 @@ pub async fn delete(
                 }),
             )),
             _ => {
-                eprintln!("{}", err.to_string());
+                eprintln!("{}", err);
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {

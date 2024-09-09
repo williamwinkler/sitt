@@ -264,7 +264,7 @@ impl ProjectRepository {
             AttributeValue::S(project.created_by.to_string()),
         );
 
-        if let Some(modified_at) = project.modified_at.clone() {
+        if let Some(modified_at) = project.modified_at {
             item.insert(key_modified_at, AttributeValue::S(modified_at.to_string()));
         }
 

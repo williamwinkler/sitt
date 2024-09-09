@@ -27,18 +27,16 @@ pub async fn create(
     let name = &create_user_dto.name;
     let role = &create_user_dto.role;
 
-    match user_service.create(&name, role, admin_user).await {
+    match user_service.create(name, role, admin_user).await {
         Ok(user) => Ok(status::Created::new("/users").body(Json(UserDto::from(user)))),
-        Err(err) => match err {
-            _ => {
-                eprintln!("{}", err.to_string());
-                Err(status::Custom(
-                    Status::InternalServerError,
-                    Json(ErrorResponse {
-                        error_message: String::from("An internal error occurred"),
-                    }),
-                ))
-            }
+        Err(err) => {
+            eprintln!("{}", err);
+            Err(status::Custom(
+                Status::InternalServerError,
+                Json(ErrorResponse {
+                    error_message: String::from("An internal error occurred"),
+                }),
+            ))
         },
     }
 }
@@ -64,7 +62,7 @@ pub async fn get(
                 }),
             )),
             _ => {
-                eprintln!("{}", err.to_string());
+                eprintln!("{}", err);
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {
@@ -89,7 +87,7 @@ pub async fn get_all(
             Ok(Json(user_dtos))
         }
         Err(err) => {
-            eprintln!("{}", err.to_string());
+            eprintln!("{}", err);
             Err(status::Custom(
                 Status::InternalServerError,
                 Json(ErrorResponse {
@@ -119,7 +117,7 @@ pub async fn delete(
                 }),
             )),
             _ => {
-                eprintln!("{}", err.to_string());
+                eprintln!("{}", err);
                 Err(status::Custom(
                     Status::InternalServerError,
                     Json(ErrorResponse {

@@ -6,7 +6,6 @@ use rocket::http::Status;
 use rocket::outcome::Outcome;
 use rocket::request::Request;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 use validator::{Validate, ValidationErrors};
 
 #[derive(Debug)]

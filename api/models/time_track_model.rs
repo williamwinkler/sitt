@@ -81,13 +81,13 @@ mod tests {
             TimeTrackStatus::InProgress.to_string(),
             "IN_PROGRESS",
             "Expected 'IN_PROGRESS', got '{}'",
-            TimeTrackStatus::InProgress.to_string()
+            TimeTrackStatus::InProgress
         );
         assert_eq!(
             TimeTrackStatus::Finished.to_string(),
             "FINISHED",
             "Expected 'FINISHED', got '{}'",
-            TimeTrackStatus::Finished.to_string()
+            TimeTrackStatus::Finished
         );
     }
 

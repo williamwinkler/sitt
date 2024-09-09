@@ -78,20 +78,16 @@ impl ProjectService {
 
     pub async fn create(&self, user: &User, project_name: String) -> Result<Project, ProjectError> {
         // Get existing projects for user
-        let existing_projects = self.repository.get_all(&user).await?;
+        let existing_projects = self.repository.get_all(user).await?;
 
         // Each user can maximum have 15 projects (except admins)
-        if user.role != UserRole::Admin {
-            if existing_projects.len() >= self.max_projects {
-                return Err(ProjectError::TooManyProjects);
-            }
+        if user.role != UserRole::Admin && existing_projects.len() >= self.max_projects {
+            return Err(ProjectError::TooManyProjects);
         }
 
         // Check if there already is a project with the same name
         if existing_projects.iter().any(|p| p.name == project_name) {
-            return Err(ProjectError::ProjectExistsWithSameName(String::from(
-                project_name,
-            )));
+            return Err(ProjectError::ProjectExistsWithSameName(project_name));
         }
 
         // Create the new project
@@ -102,7 +98,7 @@ impl ProjectService {
     }
 
     pub async fn get_all(&self, user: &User) -> Result<Vec<Project>, ProjectError> {
-        let mut projects = self.repository.get_all(&user).await?;
+        let mut projects = self.repository.get_all(user).await?;
 
         // Sort the projects, so the ACTIVE projects occur first in the list
         projects.sort_by(|a, b| match (&a.status, &b.status) {

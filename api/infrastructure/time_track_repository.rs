@@ -29,38 +29,30 @@ impl TimeTrackRepository {
             .attribute_name("project_id")
             .attribute_type(ScalarAttributeType::S)
             .build()
-            .expect(&format!(
-                "Error building the attribute partion 'project_id' in the {} table",
-                TABLE_NAME
-            ));
+            .unwrap_or_else(|_| panic!("Error building the attribute partion 'project_id' in the {} table",
+                TABLE_NAME));
 
         let keyschema_part = KeySchemaElement::builder()
             .attribute_name("project_id")
             .key_type(KeyType::Hash)
             .build()
-            .expect(&format!(
-                "Error building the key schema partion 'project_id' for table: {}",
-                TABLE_NAME
-            ));
+            .unwrap_or_else(|_| panic!("Error building the key schema partion 'project_id' for table: {}",
+                TABLE_NAME));
 
         // Sort key: id
         let attr_sort = AttributeDefinition::builder()
             .attribute_name("id")
             .attribute_type(ScalarAttributeType::S)
             .build()
-            .expect(&format!(
-                "Error building the attribute partion 'id' in the {} table",
-                TABLE_NAME
-            ));
+            .unwrap_or_else(|_| panic!("Error building the attribute partion 'id' in the {} table",
+                TABLE_NAME));
 
         let keyschema_sort = KeySchemaElement::builder()
             .attribute_name("id")
             .key_type(KeyType::Range)
             .build()
-            .expect(&format!(
-                "Error building the key schema partion 'id' for table: {}",
-                TABLE_NAME
-            ));
+            .unwrap_or_else(|_| panic!("Error building the key schema partion 'id' for table: {}",
+                TABLE_NAME));
 
         let result = db
             .client
@@ -172,7 +164,7 @@ impl TimeTrackRepository {
         match result {
             Ok(output) => {
                 if let Some(items) = output.items {
-                    if let Some(item) = items.get(0) {
+                    if let Some(item) = items.first() {
                         let time_track = Self::convert_item_to_time_track(item)?;
                         Ok(time_track)
                     } else {
@@ -389,7 +381,7 @@ impl TimeTrackRepository {
             "started_at".to_string(),
             AttributeValue::S(tt.started_at.to_string()),
         );
-        if let Some(stopped_at) = tt.stopped_at.clone() {
+        if let Some(stopped_at) = tt.stopped_at {
             item.insert(
                 "stopped_at".to_string(),
                 AttributeValue::S(stopped_at.to_string()),
