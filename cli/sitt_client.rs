@@ -9,7 +9,7 @@ use sitt_api::handlers::dtos::{
     project_dtos::{CreateProjectDto, ProjectDto},
     time_track_dtos::TimeTrackDto,
 };
-use std::{io::Read, time::Duration};
+use std::{time::Duration};
 use thiserror::Error;
 use url::Url;
 
@@ -74,7 +74,7 @@ impl ApiClient {
 
     fn handle_response<T: serde::de::DeserializeOwned>(
         &self,
-        mut response: reqwest::blocking::Response,
+        response: reqwest::blocking::Response,
     ) -> Result<T, ClientError> {
         match response.status() {
             reqwest::StatusCode::OK
@@ -82,7 +82,7 @@ impl ApiClient {
             | reqwest::StatusCode::NO_CONTENT => {
                 // If the response has no body (e.g., 204 No Content), return unit type `()`
                 if response.status() == reqwest::StatusCode::NO_CONTENT {
-                    return Ok((serde_json::from_str("null").unwrap()));
+                    return Ok(serde_json::from_str("null").unwrap());
                 }
 
                 // Otherwise, attempt to deserialize the body into the desired type `T`
@@ -150,7 +150,7 @@ pub fn create_project(
 
 pub fn get_project_by_id(config: &Config, project_id: &str) -> Result<ProjectDto, ClientError> {
     let api = ApiClient::build(config)?;
-    let url = api.build_url(&format!("{}/{}", PROJECTS_PATH, project_id.clone()));
+    let url = api.build_url(&format!("{}/{}", PROJECTS_PATH, project_id));
 
     let spinner = get_spinner(String::from("Fetching project..."));
     let response = api.client.get(url).send()?;
@@ -180,7 +180,7 @@ pub fn update_project(
     update_project_dto: &CreateProjectDto,
 ) -> Result<ProjectDto, ClientError> {
     let api = ApiClient::build(config)?;
-    let url = api.build_url(&format!("{}/{}", PROJECTS_PATH, project_id.clone()));
+    let url = api.build_url(&format!("{}/{}", PROJECTS_PATH, project_id));
 
     let spinner = get_spinner(String::from("Updating project..."));
     let response = api

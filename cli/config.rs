@@ -34,7 +34,7 @@ impl Config {
             .join(CONFIG_FILE);
 
         let config_content =
-            fs::read_to_string(&config_path).map_err(|err| ConfigError::MissingFile(err))?;
+            fs::read_to_string(config_path).map_err(ConfigError::MissingFile)?;
 
         let config: Config = toml::from_str(&config_content)
             .map_err(|err| ConfigError::InvalidConfig(err.to_string()))?;
@@ -46,7 +46,7 @@ impl Config {
         println!("Setup configuration:");
 
         let api_key_validator = |input: &str| {
-            if (input.chars().count() != 32) {
+            if input.chars().count() != 32 {
                 Ok(Validation::Invalid("Invalid API key, try again".into()))
             } else {
                 Ok(Validation::Valid)

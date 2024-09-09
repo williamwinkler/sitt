@@ -1,19 +1,18 @@
 use crate::{
     config::Config,
     sitt_client,
-    utils::{self, get_spinner, print_and_exit_on_error},
+    utils::{self, print_and_exit_on_error},
 };
 use chrono::{DateTime, Local};
 use colored::{Color, Colorize};
 use etcetera::{self, BaseStrategy};
-use indicatif::{ProgressBar, ProgressStyle};
 use inquire::{validator::Validation, Select, Text};
 use serde::{Deserialize, Serialize};
 use sitt_api::{
     handlers::dtos::project_dtos::{CreateProjectDto, ProjectDto},
     models::project_model::ProjectStatus,
 };
-use std::{fs, path::PathBuf, process::exit, time::Duration};
+use std::{fs, path::PathBuf, process::exit};
 use thiserror::Error;
 
 const CACHE_FILE: &str = "sitt-projects.toml";
@@ -39,9 +38,9 @@ struct ProjectCache {
 }
 
 pub fn create_project(config: &Config, name: String) {
-    let create_project_dto = CreateProjectDto { name: name };
+    let create_project_dto = CreateProjectDto { name };
 
-    let result = sitt_client::create_project(&config, &create_project_dto);
+    let result = sitt_client::create_project(config, &create_project_dto);
     let project = utils::print_and_exit_on_error(result);
 
     println!("New project created ✅:");
@@ -59,7 +58,7 @@ pub fn get_project_by_name(config: &Config, name: &str) {
 }
 
 pub fn update_project(config: &Config, name: &str) {
-    let project_id_result = get_project_id_by_name(config, &name);
+    let project_id_result = get_project_id_by_name(config, name);
     let project_id = print_and_exit_on_error(project_id_result);
 
     let length_validator = |input: &str| {
@@ -72,7 +71,7 @@ pub fn update_project(config: &Config, name: &str) {
         }
     };
 
-    let new_name = Text::new(&format!("New project name:"))
+    let new_name = Text::new("New project name:")
         .with_validator(length_validator)
         .prompt()
         .expect("Failed getting new project name from user");
@@ -86,7 +85,7 @@ pub fn update_project(config: &Config, name: &str) {
 }
 
 pub fn delete_project(config: &Config, name: &str) {
-    let project_id_result = get_project_id_by_name(config, &name);
+    let project_id_result = get_project_id_by_name(config, name);
     let project_id = print_and_exit_on_error(project_id_result);
 
     let api_response = sitt_client::delete_project(config, &project_id);
@@ -103,9 +102,9 @@ pub fn get_projects(config: &Config) {
     let result = sitt_client::get_projects(config);
     let projects = utils::print_and_exit_on_error(result);
 
-    if projects.len() > 0 {
+    if !projects.is_empty() {
         println!("Your {} projects: ", projects.len());
-        projects.iter().for_each(|project| print_project(project));
+        projects.iter().for_each(print_project);
     } else {
         println!("You have no projects");
     }
@@ -134,7 +133,7 @@ pub fn select_project(config: &Config, action: &str, select_option: ProjectSelec
         }
     }
 
-    if (options.len() == 0) {
+    if options.is_empty() {
         println!("No projects to {} 👀", action);
         exit(0);
     }
@@ -212,9 +211,9 @@ pub fn get_project_id_by_name(config: &Config, name: &str) -> Result<String, Pro
             Err(_) => {
                 // If deserialization fails, create a new cache
                 let new_project_cache_result = cache_projects(config, &cache_file_path);
-                let new_project_cache = print_and_exit_on_error(new_project_cache_result);
+                
 
-                new_project_cache // Use the newly created cache
+                print_and_exit_on_error(new_project_cache_result) // Use the newly created cache
             }
         };
 
@@ -256,7 +255,7 @@ fn cache_projects(
     let serialized_cache = serde_json::to_string_pretty(&new_project_cache)
         .map_err(|err| ProjectError::CacheError(err.to_string()))?;
 
-    fs::write(&cache_file_path, serialized_cache).expect("Failed writing project cache to file");
+    fs::write(cache_file_path, serialized_cache).expect("Failed writing project cache to file");
 
     Ok(new_project_cache)
 }

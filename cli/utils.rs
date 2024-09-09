@@ -23,5 +23,5 @@ pub fn get_spinner(msg: String) -> ProgressBar {
             .unwrap(),
     );
 
-    return spinner;
+    spinner
 }
