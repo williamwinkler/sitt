@@ -10,7 +10,7 @@ use rocket::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(crate = "rocket::serde")]
 pub struct CreateTimeTrackDto {
     pub project_id: String,

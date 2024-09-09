@@ -7,9 +7,9 @@ use reqwest::{
 use sitt_api::handlers::dtos::{
     common_dtos::ErrorResponse,
     project_dtos::{CreateProjectDto, ProjectDto},
-    time_track_dtos::TimeTrackDto,
+    time_track_dtos::{CreateTimeTrackDto, TimeTrackDto},
 };
-use std::{time::Duration};
+use std::time::Duration;
 use thiserror::Error;
 use url::Url;
 
@@ -231,6 +231,22 @@ pub fn stop_time_tracking(config: &Config, project_id: &str) -> Result<TimeTrack
 
     let spinner = get_spinner(String::from("Stopping time tracking on project..."));
     let response = api.client.post(url).send()?;
+    spinner.finish_and_clear();
+
+    let timetrack = api.handle_response::<TimeTrackDto>(response)?;
+
+    Ok(timetrack)
+}
+
+pub fn add_time_tracking(
+    config: &Config,
+    create_time_track_dto: &CreateTimeTrackDto,
+) -> Result<TimeTrackDto, ClientError> {
+    let api = ApiClient::build(config)?;
+    let url = api.build_url(TIME_TRACKS_PATH);
+
+    let spinner = get_spinner(String::from("Adding time on project..."));
+    let response = api.client.post(url).json(create_time_track_dto).send()?;
     spinner.finish_and_clear();
 
     let timetrack = api.handle_response::<TimeTrackDto>(response)?;

@@ -2,17 +2,18 @@ use crate::{
     config::Config,
     sitt_client,
     utils::{self, print_and_exit_on_error},
+    ProjectArgs,
 };
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Local, Utc};
 use colored::{Color, Colorize};
 use etcetera::{self, BaseStrategy};
-use inquire::{validator::Validation, Select, Text};
+use inquire::{validator::Validation, Confirm, CustomType, Select, Text};
 use serde::{Deserialize, Serialize};
 use sitt_api::{
     handlers::dtos::project_dtos::{CreateProjectDto, ProjectDto},
     models::project_model::ProjectStatus,
 };
-use std::{fs, path::PathBuf, process::exit};
+use std::{fs, path::PathBuf, process::exit, str::FromStr};
 use thiserror::Error;
 
 const CACHE_FILE: &str = "sitt-projects.toml";
@@ -37,7 +38,12 @@ struct ProjectCache {
     name: String,
 }
 
-pub fn create_project(config: &Config, name: String) {
+pub fn create_project(config: &Config, args: ProjectArgs) {
+    let name = if let Some(name) = args.name {
+        name
+    }  else {
+        get_project_name_from_input()
+    };
     let create_project_dto = CreateProjectDto { name };
 
     let result = sitt_client::create_project(config, &create_project_dto);
@@ -47,8 +53,15 @@ pub fn create_project(config: &Config, name: String) {
     print_project(&project);
 }
 
-pub fn get_project_by_name(config: &Config, name: &str) {
-    let project_id_result = get_project_id_by_name(config, name);
+pub fn get_project_by_name(config: &Config, args: &ProjectArgs) {
+    let name = resolve_project_name(
+        args.name.clone(),
+        &config,
+        "get",
+        ProjectSelectOption::InActive,
+    );
+
+    let project_id_result = get_project_id_by_name(config, &name);
     let project_id = print_and_exit_on_error(project_id_result);
 
     let api_response = sitt_client::get_project_by_id(config, &project_id);
@@ -57,8 +70,15 @@ pub fn get_project_by_name(config: &Config, name: &str) {
     print_project(&project);
 }
 
-pub fn update_project(config: &Config, name: &str) {
-    let project_id_result = get_project_id_by_name(config, name);
+pub fn update_project(config: &Config, args: &ProjectArgs) {
+    let name = resolve_project_name(
+        args.name.clone(),
+        &config,
+        "update",
+        ProjectSelectOption::InActive,
+    );
+
+    let project_id_result = get_project_id_by_name(config, &name);
     let project_id = print_and_exit_on_error(project_id_result);
 
     let length_validator = |input: &str| {
@@ -84,9 +104,24 @@ pub fn update_project(config: &Config, name: &str) {
     print_project(&project);
 }
 
-pub fn delete_project(config: &Config, name: &str) {
-    let project_id_result = get_project_id_by_name(config, name);
+pub fn delete_project(config: &Config, args: &ProjectArgs) {
+    let name = resolve_project_name(
+        args.name.clone(),
+        &config,
+        "delete",
+        ProjectSelectOption::InActive,
+    );
+
+    let project_id_result = get_project_id_by_name(config, &name);
     let project_id = print_and_exit_on_error(project_id_result);
+
+    let confirm_deletion = Confirm::new("Are you sure you want to delete?")
+        .prompt()
+        .expect("Failed prompting user if they wanted to delete project");
+
+    if !confirm_deletion {
+        exit(0)
+    }
 
     let api_response = sitt_client::delete_project(config, &project_id);
 
@@ -184,6 +219,20 @@ CREATED AT:   {}"#,
     }
 }
 
+pub fn resolve_project_name(
+    args_name: Option<String>,
+    config: &Config,
+    action: &str,
+    option: ProjectSelectOption,
+) -> String {
+    // If `args.name` is provided, return it; otherwise prompt the user to select a project
+    if let Some(project_name) = args_name {
+        project_name
+    } else {
+        select_project(config, action, option)
+    }
+}
+
 pub fn get_project_id_by_name(config: &Config, name: &str) -> Result<String, ProjectError> {
     // Load cache of projects
     let cache_file_path = etcetera::choose_base_strategy()
@@ -211,7 +260,6 @@ pub fn get_project_id_by_name(config: &Config, name: &str) -> Result<String, Pro
             Err(_) => {
                 // If deserialization fails, create a new cache
                 let new_project_cache_result = cache_projects(config, &cache_file_path);
-
 
                 print_and_exit_on_error(new_project_cache_result) // Use the newly created cache
             }
