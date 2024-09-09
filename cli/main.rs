@@ -156,7 +156,7 @@ impl Command {
                     Config::setup();
                 }
                 ConfigCommand::Get => {
-                    println!("🔑 Your configuration:");
+                    println!("🔑 Your configuration:\n");
                     println!("{} URL: {}", "sitt".color(Color::Yellow), &config.get_url(),);
                     println!("API key:  {}", &config.get_api_key())
                 }
