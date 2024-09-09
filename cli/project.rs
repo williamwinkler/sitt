@@ -93,7 +93,7 @@ pub fn delete_project(config: &Config, name: &str) {
     utils::print_and_exit_on_error(api_response);
 
     println!(
-        "Project {} was succesfully deleted ✅",
+        "Project {} was successfully deleted ✅",
         name.color(Color::Cyan)
     );
 }
@@ -211,7 +211,7 @@ pub fn get_project_id_by_name(config: &Config, name: &str) -> Result<String, Pro
             Err(_) => {
                 // If deserialization fails, create a new cache
                 let new_project_cache_result = cache_projects(config, &cache_file_path);
-                
+
 
                 print_and_exit_on_error(new_project_cache_result) // Use the newly created cache
             }

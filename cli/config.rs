@@ -85,7 +85,7 @@ impl Config {
             .join(CONFIG_FILE);
 
         fs::write(&config_path, toml).expect("Failed saving configuration file");
-        println!("\nConfiguration was succesfull ✅");
+        println!("\nConfiguration was successful ✅");
         println!(
             "Configuration saved at: {}",
             &config_path.to_string_lossy().to_string()
@@ -101,4 +101,3 @@ impl Config {
         &self.sitt_url
     }
 }
-
