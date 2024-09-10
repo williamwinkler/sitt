@@ -55,7 +55,6 @@ pub fn prompt_user_for_datetime(msg: &str) -> DateTime<Utc> {
     println!("🗓️  {}", local_datetime);
 
     // Convert the local DateTime to UTC
-    let utc_datetime = local_datetime.with_timezone(&Utc);
 
-    utc_datetime
+    local_datetime.with_timezone(&Utc)
 }

@@ -4,16 +4,16 @@ use crate::{
     utils::{self, print_and_exit_on_error},
     ProjectArgs,
 };
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Local};
 use colored::{Color, Colorize};
 use etcetera::{self, BaseStrategy};
-use inquire::{validator::Validation, Confirm, CustomType, Select, Text};
+use inquire::{validator::Validation, Confirm, Select, Text};
 use serde::{Deserialize, Serialize};
 use sitt_api::{
     handlers::dtos::project_dtos::{CreateProjectDto, ProjectDto},
     models::project_model::ProjectStatus,
 };
-use std::{fs, path::PathBuf, process::exit, str::FromStr};
+use std::{fs, path::PathBuf, process::exit};
 use thiserror::Error;
 
 const CACHE_FILE: &str = "sitt-projects.toml";
@@ -56,9 +56,9 @@ pub fn create_project(config: &Config, args: ProjectArgs) {
 pub fn get_project_by_name(config: &Config, args: &ProjectArgs) {
     let name = resolve_project_name(
         args.name.clone(),
-        &config,
+        config,
         "get",
-        ProjectSelectOption::InActive,
+        ProjectSelectOption::None,
     );
 
     let project_id_result = get_project_id_by_name(config, &name);
@@ -73,9 +73,9 @@ pub fn get_project_by_name(config: &Config, args: &ProjectArgs) {
 pub fn update_project(config: &Config, args: &ProjectArgs) {
     let name = resolve_project_name(
         args.name.clone(),
-        &config,
+        config,
         "update",
-        ProjectSelectOption::InActive,
+        ProjectSelectOption::None,
     );
 
     let project_id_result = get_project_id_by_name(config, &name);
@@ -107,9 +107,9 @@ pub fn update_project(config: &Config, args: &ProjectArgs) {
 pub fn delete_project(config: &Config, args: &ProjectArgs) {
     let name = resolve_project_name(
         args.name.clone(),
-        &config,
+        config,
         "delete",
-        ProjectSelectOption::InActive,
+        ProjectSelectOption::None,
     );
 
     let project_id_result = get_project_id_by_name(config, &name);

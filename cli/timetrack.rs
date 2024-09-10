@@ -1,8 +1,8 @@
-use std::{process::exit, str::FromStr, time::Duration};
+use std::{process::exit, time::Duration};
 
-use chrono::{DateTime, Local, NaiveDateTime, NaiveTime, Utc};
+use chrono::{DateTime, Local};
 use colored::{Color, Colorize};
-use inquire::{Confirm, CustomType, DateSelect, Text};
+use inquire::Confirm;
 use sitt_api::{
     handlers::dtos::time_track_dtos::{CreateTimeTrackDto, TimeTrackDto},
     models::time_track_model::TimeTrackStatus,
@@ -19,7 +19,7 @@ use crate::{
 pub fn start_time_tracking(config: &Config, project_args: &ProjectArgs) {
     let name = resolve_project_name(
         project_args.name.clone(),
-        &config,
+        config,
         "start tracking on",
         ProjectSelectOption::InActive,
     );
@@ -35,9 +35,9 @@ pub fn start_time_tracking(config: &Config, project_args: &ProjectArgs) {
 pub fn stop_time_tracking(config: &Config, project_args: &ProjectArgs) {
     let name = resolve_project_name(
         project_args.name.clone(),
-        &config,
+        config,
         "stop tracking on",
-        ProjectSelectOption::InActive,
+        ProjectSelectOption::Active,
     );
     let project_id_result = get_project_id_by_name(config, &name);
     let project_id = print_and_exit_on_error(project_id_result);
@@ -51,9 +51,9 @@ pub fn stop_time_tracking(config: &Config, project_args: &ProjectArgs) {
 pub fn add_time_tracking(config: &Config, args: &ProjectArgs) {
     let name = resolve_project_name(
         args.name.clone(),
-        &config,
+        config,
         "add time on",
-        ProjectSelectOption::InActive,
+        ProjectSelectOption::None,
     );
     let project_id_result = get_project_id_by_name(config, &name);
     let project_id = print_and_exit_on_error(project_id_result);
