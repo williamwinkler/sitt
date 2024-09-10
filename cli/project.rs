@@ -92,6 +92,7 @@ pub fn update_project(config: &Config, args: &ProjectArgs) {
     };
 
     let new_name = Text::new("New project name:")
+        .with_initial_value(&name)
         .with_validator(length_validator)
         .prompt()
         .expect("Failed getting new project name from user");
