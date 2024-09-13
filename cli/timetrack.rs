@@ -58,14 +58,15 @@ pub fn add_time_tracking(config: &Config, args: &ProjectArgs) {
     let project_id_result = get_project_id_by_name(config, &name);
     let project_id = print_and_exit_on_error(project_id_result);
 
-    let started_at = utils::prompt_user_for_datetime(&format!(
-        "Enter the {} date",
-        "starting".color(Color::Yellow)
-    ));
-    let stopped_at = utils::prompt_user_for_datetime(&format!(
-        "Enter the {} date",
-        "stopping".color(Color::Yellow)
-    ));
+    let started_at = utils::prompt_user_for_datetime(
+        &format!("Enter the {} date", "starting".color(Color::Yellow)),
+        None,
+    );
+
+    let stopped_at = utils::prompt_user_for_datetime(
+        &format!("Enter the {} date", "stopping".color(Color::Yellow),),
+        Some(started_at),
+    );
 
     let duration = {
         let time_delta = stopped_at - started_at;
