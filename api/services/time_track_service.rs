@@ -168,6 +168,14 @@ impl TimeTrackService {
             time_track_items.sort_by(|a, b| b.started_at.cmp(&a.started_at));
         }
 
+        let active_time_track = time_track_items.iter_mut().find(|t| t.status == TimeTrackStatus::InProgress);
+        if let Some(time_track) = active_time_track {
+            time_track.total_duration = {
+                let time_delta = Utc::now() - time_track.started_at;
+                Duration::new(time_delta.num_seconds() as u64, 0 )
+            }
+        }
+
         Ok((time_track_items, project.name))
     }
 

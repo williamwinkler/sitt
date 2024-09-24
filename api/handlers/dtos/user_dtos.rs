@@ -25,7 +25,7 @@ pub struct CreateUserDto {
 impl<'r> FromData<'r> for CreateUserDto {
     type Error = ();
 
-    async fn from_data(req: &'r Request<'_>, data: Data<'r>) -> data::Outcome<'r, Self> {
+    async fn from_data(_req: &'r Request<'_>, data: Data<'r>) -> data::Outcome<'r, Self> {
         let limit = 256.bytes();
         let string = match data.open(limit).into_string().await {
             Ok(string) if string.is_complete() => string.into_inner(),

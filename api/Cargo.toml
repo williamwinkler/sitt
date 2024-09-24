@@ -22,7 +22,7 @@ rand = { workspace = true }
 rocket = { version = "0.5.0-rc.2", features = ["json"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-thiserror = "=1.0.63"
+thiserror = { workspace = true }
 tokio = { version = "1", features = ["full"] }
 uuid = { version = "1.9.1", features = ["v4"] }
 validator = { version = "0.18.1", features = ["derive"] }

@@ -22,7 +22,7 @@ pub struct CreateTimeTrackDto {
 impl<'r> FromData<'r> for CreateTimeTrackDto {
     type Error = ();
 
-    async fn from_data(req: &'r Request<'_>, data: Data<'r>) -> data::Outcome<'r, Self> {
+    async fn from_data(_req: &'r Request<'_>, data: Data<'r>) -> data::Outcome<'r, Self> {
         let limit = 256.bytes();
         let string = match data.open(limit).into_string().await {
             Ok(string) if string.is_complete() => string.into_inner(),
@@ -43,7 +43,7 @@ impl<'r> FromData<'r> for CreateTimeTrackDto {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TimeTrackDto {
     pub time_track_id: String,
     pub project_id: String,

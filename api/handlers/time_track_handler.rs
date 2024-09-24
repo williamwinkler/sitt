@@ -5,9 +5,7 @@ use super::{
     },
     validation::{user_validation::UserValidation, uuid_validation::UuidValidation},
 };
-use crate::{
-    services::time_track_service::{TimeTrackError, TimeTrackService},
-};
+use crate::services::time_track_service::{TimeTrackError, TimeTrackService};
 use rocket::{
     delete, get, http::Status, post, put, response::status, routes, serde::json::Json, Route, State,
 };

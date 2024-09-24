@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use super::user_model::User;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub enum TimeTrackStatus {
     #[serde(rename = "IN_PROGRESS")]
     InProgress,
@@ -68,6 +68,7 @@ impl TimeTrack {
         }
     }
 }
+
 
 #[cfg(test)]
 mod tests {
