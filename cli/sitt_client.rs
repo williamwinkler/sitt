@@ -253,3 +253,32 @@ pub fn add_time_tracking(
 
     Ok(timetrack)
 }
+
+pub fn get_time_trackings(
+    config: &Config,
+    project_id: &str,
+) -> Result<Vec<TimeTrackDto>, ClientError> {
+    let api = ApiClient::build(config)?;
+    let url = api.build_url(&format!("{}/{}", TIME_TRACKS_PATH, project_id));
+
+    let spinner = get_spinner(String::from("Fetching logged time on project..."));
+    let response = api.client.get(url).send()?;
+    spinner.finish_and_clear();
+
+    let timetrack_list = api.handle_response::<Vec<TimeTrackDto>>(response)?;
+
+    Ok(timetrack_list)
+}
+
+pub fn delete_time_track(config: &Config, project_id: &str, time_track_id: &str) -> Result<(), ClientError> {
+    let api = ApiClient::build(config)?;
+    let url = api.build_url(&format!("{}/{}/{}", TIME_TRACKS_PATH,  project_id, time_track_id));
+
+    let spinner = get_spinner(String::from("Deleting..."));
+    let response = api.client.delete(url).send()?;
+    spinner.finish_and_clear();
+
+    api.handle_response::<()>(response)?;
+
+    Ok(())
+}

@@ -1,10 +1,10 @@
 use crate::{
     config::Config,
     sitt_client,
-    utils::{self, print_and_exit_on_error},
+    utils::{self, print_and_exit_on_error, DATETIME_FORMAT},
     ProjectArgs,
 };
-use chrono::{DateTime, Local};
+use chrono::{Local};
 use colored::{Color, Colorize};
 use etcetera::{self, BaseStrategy};
 use inquire::{validator::Validation, Confirm, Select, Text};
@@ -41,7 +41,7 @@ struct ProjectCache {
 pub fn create_project(config: &Config, args: ProjectArgs) {
     let name = if let Some(name) = args.name {
         name
-    }  else {
+    } else {
         get_project_name_from_input()
     };
     let create_project_dto = CreateProjectDto { name };
@@ -54,12 +54,7 @@ pub fn create_project(config: &Config, args: ProjectArgs) {
 }
 
 pub fn get_project_by_name(config: &Config, args: &ProjectArgs) {
-    let name = resolve_project_name(
-        args.name.clone(),
-        config,
-        "get",
-        ProjectSelectOption::None,
-    );
+    let name = resolve_project_name(args.name.clone(), config, "get", ProjectSelectOption::None);
 
     let project_id_result = get_project_id_by_name(config, &name);
     let project_id = print_and_exit_on_error(project_id_result);
@@ -95,7 +90,10 @@ pub fn update_project(config: &Config, args: &ProjectArgs) {
         .with_initial_value(&name)
         .with_validator(length_validator)
         .prompt()
-        .expect("Failed getting new project name from user");
+        .unwrap_or_else(|err| {
+            eprintln!("Error: {}", err);
+            exit(1);
+        });
 
     let update_project_dto = CreateProjectDto { name: new_name };
 
@@ -118,7 +116,10 @@ pub fn delete_project(config: &Config, args: &ProjectArgs) {
 
     let confirm_deletion = Confirm::new("Are you sure you want to delete?")
         .prompt()
-        .expect("Failed prompting user if they wanted to delete project");
+        .unwrap_or_else(|err| {
+            eprintln!("Error: {}", err);
+            exit(1);
+        });
 
     if !confirm_deletion {
         exit(0)
@@ -129,7 +130,7 @@ pub fn delete_project(config: &Config, args: &ProjectArgs) {
     utils::print_and_exit_on_error(api_response);
 
     println!(
-        "Project {} was successfully deleted ✅",
+        "Project {} was successfully deleted! ✅",
         name.color(Color::Cyan)
     );
 }
@@ -179,15 +180,19 @@ pub fn select_project(config: &Config, action: &str, select_option: ProjectSelec
         options,
     )
     .prompt()
-    .expect("Failed prompting which project to select");
+    .unwrap_or_else(|err| {
+        eprintln!("Error: {}", err);
+        exit(1);
+    });
 
     project_name.to_string()
 }
 
 pub fn get_project_name_from_input() -> String {
-    let project_name = Text::new("Project name:")
-        .prompt()
-        .expect("Failed prompting project name");
+    let project_name = Text::new("Project name:").prompt().unwrap_or_else(|err| {
+        eprintln!("Error: {}", err);
+        exit(1);
+    });
 
     project_name
 }
@@ -200,7 +205,6 @@ fn print_project(project: &ProjectDto) {
         }
         status_with_color
     };
-    let local_created_at: DateTime<Local> = project.created_at.with_timezone(&Local);
 
     println!(
         r#"
@@ -211,12 +215,14 @@ CREATED AT:   {}"#,
         project.name.color(Color::Cyan),
         status_with_color,
         project.total_duration,
-        local_created_at
+        project.created_at.with_timezone(&Local).format(DATETIME_FORMAT),
     );
 
     if let Some(modified_at) = project.modified_at {
-        let local_modified_at: DateTime<Local> = modified_at.with_timezone(&Local);
-        println!("MODIFIED AT:  {}", local_modified_at)
+        println!(
+            "MODIFIED AT:  {}",
+            modified_at.with_timezone(&Local).format(DATETIME_FORMAT)
+        )
     }
 }
 

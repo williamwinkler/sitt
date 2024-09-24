@@ -6,6 +6,8 @@ use chrono::{
 use indicatif::{ProgressBar, ProgressStyle};
 use inquire::{DateSelect, Text};
 
+pub const DATETIME_FORMAT: &str = "%d/%m/%Y %H:%M:%S";
+
 pub fn print_and_exit_on_error<T, E>(result: Result<T, E>) -> T
 where
     E: Display,
@@ -50,7 +52,10 @@ pub fn prompt_user_for_datetime(msg: &str, min_date: Option<DateTime<Utc>>) -> D
         date = date.with_starting_date(naive_min_date);
     }
 
-    let date = date.prompt().expect("Failed prompting date");
+    let date = date.prompt().unwrap_or_else(|err| {
+        eprintln!("Error: {}", err);
+        exit(1);
+    });
 
     // Ask for time (HH:MM:SS) in local time zone
     let mut time_input = Text::new("Enter the time (HH:MM:SS in 24-hour format):")
@@ -74,7 +79,10 @@ pub fn prompt_user_for_datetime(msg: &str, min_date: Option<DateTime<Utc>>) -> D
         time_input = time_input.with_initial_value(&initial_value);
     }
 
-    let time_input_str = time_input.prompt().expect("Failed to get time");
+    let time_input_str = time_input.prompt().unwrap_or_else(|err| {
+        eprintln!("Error: {}", err);
+        exit(1);
+    });
 
     // Parse the time (in local time zone) and handle errors
     let time = NaiveTime::parse_from_str(&time_input_str, "%H:%M:%S").unwrap_or_else(|err| {

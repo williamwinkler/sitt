@@ -28,7 +28,7 @@ enum Command {
     Stop(ProjectArgs),
     #[command(subcommand, about = "Manage your projects")]
     Project(ProjectCommand),
-    #[command(subcommand, about = "Manually manage time on a project")]
+    #[command(subcommand, about = "Manage time on your projects")]
     Time(TimeTrackCommand),
     #[command(subcommand, about = "Manage your configuration")]
     Config(ConfigCommand),
@@ -38,10 +38,12 @@ enum Command {
 enum TimeTrackCommand {
     #[command(about = "Add time on a project")]
     Add(ProjectArgs),
-    // #[command(about = "Delete time logged on a project")]
-    // Delete(ProjectArgs),
+    #[command(about = "Delete time logged on a project")]
+    Delete(ProjectArgs),
     // #[command(about = "Update a time log on a project")]
     // Update(ProjectArgs),
+    #[command(visible_alias = "ls", about = "List time logged on a project")]
+    List(ProjectArgs),
 }
 
 #[derive(Subcommand)]
@@ -68,7 +70,7 @@ enum ConfigCommand {
 
 #[derive(Args)]
 pub struct ProjectArgs {
-    #[arg(short, long)]
+    #[arg(short, long, help = "Specify the name of the project")]
     name: Option<String>,
 }
 
@@ -108,8 +110,9 @@ impl Command {
             },
             Command::Time(timetrack_command) => match timetrack_command {
                 TimeTrackCommand::Add(args) => timetrack::add_time_tracking(&config, &args),
+                TimeTrackCommand::List(args) => timetrack::get_time_trackings(&config, &args),
                 // TimeTrackCommand::Update(args) =>
-                // TimeTrackCommand::Delete(args) =>
+                TimeTrackCommand::Delete(args) => timetrack::delete_time_tracking(&config, &args),
             },
             Command::Config(config_command) => match config_command {
                 ConfigCommand::Set => {
