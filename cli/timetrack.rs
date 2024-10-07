@@ -201,9 +201,18 @@ pub fn edit_time_track(config: &Config, args: &ProjectArgs) {
         utils::PromptDateTimeArg::PlaceholderDate(time_track.started_at),
     );
 
+    // Choose the stopped_at datetime if present otherwise started at
+    let stopped_at_datetime = {
+        if let Some(stopped_at) = time_track.stopped_at {
+            stopped_at
+        } else {
+            time_track.started_at
+        }
+    };
+
     let stopped_at = utils::prompt_user_for_datetime(
         &format!("Enter the {} date", "stopping".color(Color::Yellow),),
-        utils::PromptDateTimeArg::MinDate(started_at),
+        utils::PromptDateTimeArg::MinDate(stopped_at_datetime),
     );
 
     let duration = {
@@ -212,7 +221,7 @@ pub fn edit_time_track(config: &Config, args: &ProjectArgs) {
     };
 
     let confirm_choice = Confirm::new(&format!(
-        "Are you sure, you want to update the logged time to {} on project {}?",
+        "Are you sure, you want to edit the logged time to {} on project {}?",
         humantime::format_duration(duration)
             .to_string()
             .color(Color::Yellow),

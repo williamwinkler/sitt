@@ -36,3 +36,8 @@ Options:
   -h, --help     Print help
   -V, --version  Print version
 ```
+
+## Setup
+```bash
+echo 'export PATH="$PATH:~/Documents/projects/sitt-api/target/release"' >> ~/.zshrc
+```
