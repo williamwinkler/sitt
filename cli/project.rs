@@ -4,7 +4,7 @@ use crate::{
     utils::{self, print_and_exit_on_error, DATETIME_FORMAT},
     ProjectArgs,
 };
-use chrono::{Local};
+use chrono::Local;
 use colored::{Color, Colorize};
 use etcetera::{self, BaseStrategy};
 use inquire::{validator::Validation, Confirm, Select, Text};
@@ -215,7 +215,10 @@ CREATED AT:   {}"#,
         project.name.color(Color::Cyan),
         status_with_color,
         project.total_duration,
-        project.created_at.with_timezone(&Local).format(DATETIME_FORMAT),
+        project
+            .created_at
+            .with_timezone(&Local)
+            .format(DATETIME_FORMAT),
     );
 
     if let Some(modified_at) = project.modified_at {
@@ -243,7 +246,10 @@ pub fn resolve_project_name(
 pub fn get_project_id_by_name(config: &Config, name: &str) -> Result<String, ProjectError> {
     // Load cache of projects
     let cache_file_path = etcetera::choose_base_strategy()
-        .expect("etcetera failed base strategy")
+        .unwrap_or_else(|err| {
+            eprintln!("Error: {}", err);
+            exit(1);
+        })
         .cache_dir()
         .join(CACHE_FILE);
 
@@ -257,8 +263,11 @@ pub fn get_project_id_by_name(config: &Config, name: &str) -> Result<String, Pro
         // Add the newly cached projects to the existing project cache
         cache.extend(new_cache);
     } else {
-        let cache_content =
-            fs::read_to_string(&cache_file_path).expect("Expected a projects cache file");
+        let cache_content = fs::read_to_string(&cache_file_path).unwrap_or_else(|err| {
+            eprintln!("Error: {}", err);
+            exit(1);
+        });
+
         let old_project_cache_result = serde_json::from_str(&cache_content);
 
         // Check if the caches was deserialized succesfully
@@ -310,7 +319,10 @@ fn cache_projects(
     let serialized_cache = serde_json::to_string_pretty(&new_project_cache)
         .map_err(|err| ProjectError::CacheError(err.to_string()))?;
 
-    fs::write(cache_file_path, serialized_cache).expect("Failed writing project cache to file");
+    fs::write(cache_file_path, serialized_cache).unwrap_or_else(|err| {
+        eprintln!("Error: {}", err);
+        exit(1);
+    });
 
     Ok(new_project_cache)
 }

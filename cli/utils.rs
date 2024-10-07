@@ -8,6 +8,13 @@ use inquire::{DateSelect, Text};
 
 pub const DATETIME_FORMAT: &str = "%d/%m/%Y %H:%M:%S";
 
+#[derive(PartialEq)]
+pub enum PromptDateTimeArg {
+    MinDate(DateTime<Utc>),
+    PlaceholderDate(DateTime<Utc>),
+    None,
+}
+
 pub fn print_and_exit_on_error<T, E>(result: Result<T, E>) -> T
 where
     E: Display,
@@ -32,24 +39,21 @@ pub fn get_spinner(msg: String) -> ProgressBar {
     spinner
 }
 
-pub fn prompt_user_for_datetime(msg: &str, min_date: Option<DateTime<Utc>>) -> DateTime<Utc> {
+pub fn prompt_user_for_datetime(msg: &str, prompt_date: PromptDateTimeArg) -> DateTime<Utc> {
     // Ask the user to select a date (in local time zone)
     let mut date = DateSelect::new(msg);
 
-    if let Some(min_date) = min_date {
-        // Convert min_date to local time
-        let min_date_local = min_date.with_timezone(&Local);
-
-        let naive_min_date = NaiveDate::from_ymd_opt(
-            min_date_local.year(),
-            min_date_local.month(),
-            min_date_local.day(),
-        );
-
-        let naive_min_date = naive_min_date.unwrap_or_default();
-
-        date = date.with_min_date(naive_min_date);
-        date = date.with_starting_date(naive_min_date);
+    match prompt_date {
+        PromptDateTimeArg::MinDate(prompt_date) => {
+            let naive_min_date = get_local_naive_date_from_utc_datetime(prompt_date);
+            date = date.with_min_date(naive_min_date);
+            date = date.with_starting_date(naive_min_date);
+        }
+        PromptDateTimeArg::PlaceholderDate(prompt_date) => {
+            let placeholder_date = get_local_naive_date_from_utc_datetime(prompt_date);
+            date = date.with_starting_date(placeholder_date);
+        }
+        PromptDateTimeArg::None => {}
     }
 
     let date = date.prompt().unwrap_or_else(|err| {
@@ -61,21 +65,10 @@ pub fn prompt_user_for_datetime(msg: &str, min_date: Option<DateTime<Utc>>) -> D
     let mut time_input = Text::new("Enter the time (HH:MM:SS in 24-hour format):")
         .with_help_message("Example: 14:30:15");
 
-    let mut initial_value = String::new();
+    let mut initial_value = String::from("12:00:00");
 
-    if let Some(min_date) = min_date {
-        // Convert min_date to local time
-        let min_date_local = min_date.with_timezone(&Local);
-
-        // Assign a formatted string to `initial_value`
-        initial_value = format!(
-            "{}:{}:{}",
-            min_date_local.hour(),
-            min_date_local.minute(),
-            min_date_local.second()
-        );
-
-        // Use the variable
+    if let PromptDateTimeArg::MinDate(date) | PromptDateTimeArg::PlaceholderDate(date) = prompt_date {
+        initial_value = get_local_time_as_str(date);
         time_input = time_input.with_initial_value(&initial_value);
     }
 
@@ -100,4 +93,28 @@ pub fn prompt_user_for_datetime(msg: &str, min_date: Option<DateTime<Utc>>) -> D
 
     // Convert the local DateTime to UTC
     local_datetime.with_timezone(&Utc)
+}
+
+fn get_local_naive_date_from_utc_datetime(date: DateTime<Utc>) -> NaiveDate {
+    let local_date = date.with_timezone(&Local);
+    let naive_date =
+        NaiveDate::from_ymd_opt(local_date.year(), local_date.month(), local_date.day())
+            .unwrap_or_default();
+
+    naive_date
+}
+
+fn get_local_time_as_str(date: DateTime<Utc>) -> String {
+    // Convert min_date to local time
+    let local_date = date.with_timezone(&Local);
+
+    // Turn the time from local_date into a "HH:MM:SS" string
+    let initial_value = format!(
+        "{:02}:{:02}:{:02}",
+        local_date.hour(),
+        local_date.minute(),
+        local_date.second()
+    );
+
+    initial_value
 }

@@ -2,7 +2,7 @@ use colored::{Color, Colorize};
 use etcetera::BaseStrategy;
 use inquire::{validator::Validation, Text};
 use serde::{Deserialize, Serialize};
-use std::{fs, io};
+use std::{fs, io, process::exit};
 use thiserror::Error;
 use url::Url;
 
@@ -29,12 +29,14 @@ impl Config {
 
     pub fn load() -> Result<Self, ConfigError> {
         let config_path = etcetera::choose_base_strategy()
-            .expect("etcetera failed base strategy")
+            .unwrap_or_else(|err| {
+                eprintln!("Error: {}", err);
+                exit(1);
+            })
             .config_dir()
             .join(CONFIG_FILE);
 
-        let config_content =
-            fs::read_to_string(config_path).map_err(ConfigError::MissingFile)?;
+        let config_content = fs::read_to_string(config_path).map_err(ConfigError::MissingFile)?;
 
         let config: Config = toml::from_str(&config_content)
             .map_err(|err| ConfigError::InvalidConfig(err.to_string()))?;
@@ -68,23 +70,39 @@ impl Config {
             ))
             .with_validator(url_validator)
             .prompt()
-            .expect("sitt_url failed prompting");
+            .unwrap_or_else(|err| {
+                eprintln!("Error: {}", err);
+                exit(1);
+            });
 
         let api_key = Text::new(&format!("{} API key:", "sitt".color(Color::Yellow)))
             .with_validator(api_key_validator)
             .prompt()
-            .expect("api_key failed prompting");
+            .unwrap_or_else(|err| {
+                eprintln!("Error: {}", err);
+                exit(1);
+            });
 
         let config = Config::new(api_key, sitt_url);
-        let toml = toml::to_string(&config).expect("Failed converting configuration into toml");
+        let toml = toml::to_string(&config).unwrap_or_else(|err| {
+            eprintln!("Error: {}", err);
+            exit(1);
+        });
 
         // Get configuration path fiting the OS
         let config_path = etcetera::choose_base_strategy()
-            .expect("etcetera failed base strategy")
+            .unwrap_or_else(|err| {
+                eprintln!("Error: {}", err);
+                exit(1);
+            })
             .config_dir()
             .join(CONFIG_FILE);
 
-        fs::write(&config_path, toml).expect("Failed saving configuration file");
+        fs::write(&config_path, toml).unwrap_or_else(|err| {
+            eprintln!("Error: {}", err);
+            exit(1);
+        });
+
         println!("\nConfiguration was successful ✅");
         println!(
             "Configuration saved at: {}",

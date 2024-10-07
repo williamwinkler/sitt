@@ -270,6 +270,23 @@ pub fn get_time_trackings(
     Ok(timetrack_list)
 }
 
+pub fn update_time_track(
+    config: &Config,
+    time_track_id: &str,
+    update_project_dto: &CreateTimeTrackDto
+) -> Result<TimeTrackDto, ClientError> {
+    let api = ApiClient::build(config)?;
+    let url = api.build_url(&format!("{}/{}", TIME_TRACKS_PATH, time_track_id));
+
+    let spinner = get_spinner(String::from("Editing time on project..."));
+    let response = api.client.put(url).json(update_project_dto).send()?;
+    spinner.finish_and_clear();
+
+    let timetrack = api.handle_response::<TimeTrackDto>(response)?;
+
+    Ok(timetrack)
+}
+
 pub fn delete_time_track(config: &Config, project_id: &str, time_track_id: &str) -> Result<(), ClientError> {
     let api = ApiClient::build(config)?;
     let url = api.build_url(&format!("{}/{}/{}", TIME_TRACKS_PATH,  project_id, time_track_id));

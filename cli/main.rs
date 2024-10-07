@@ -40,8 +40,8 @@ enum TimeTrackCommand {
     Add(ProjectArgs),
     #[command(about = "Delete time logged on a project")]
     Delete(ProjectArgs),
-    // #[command(about = "Update a time log on a project")]
-    // Update(ProjectArgs),
+    #[command(about = "Edit a time log on a project")]
+    Edit(ProjectArgs),
     #[command(visible_alias = "ls", about = "List time logged on a project")]
     List(ProjectArgs),
 }
@@ -50,8 +50,8 @@ enum TimeTrackCommand {
 enum ProjectCommand {
     #[command(about = "Create a project")]
     Create(ProjectArgs),
-    #[command(about = "Update a project")]
-    Update(ProjectArgs),
+    #[command(about = "Edit the name of a project")]
+    Edit(ProjectArgs),
     #[command(about = "Delete a project")]
     Delete(ProjectArgs),
     #[command(about = "Get a project by name")]
@@ -103,7 +103,7 @@ impl Command {
             Command::Stop(args) => timetrack::stop_time_tracking(&config, &args),
             Command::Project(project_command) => match project_command {
                 ProjectCommand::Create(args) => project::create_project(&config, args),
-                ProjectCommand::Update(args) => project::update_project(&config, &args),
+                ProjectCommand::Edit(args) => project::update_project(&config, &args),
                 ProjectCommand::Delete(args) => project::delete_project(&config, &args),
                 ProjectCommand::Get(args) => project::get_project_by_name(&config, &args),
                 ProjectCommand::List => project::get_projects(&config),
@@ -111,7 +111,7 @@ impl Command {
             Command::Time(timetrack_command) => match timetrack_command {
                 TimeTrackCommand::Add(args) => timetrack::add_time_tracking(&config, &args),
                 TimeTrackCommand::List(args) => timetrack::get_time_trackings(&config, &args),
-                // TimeTrackCommand::Update(args) =>
+                TimeTrackCommand::Edit(args) => timetrack::edit_time_track(&config, &args),
                 TimeTrackCommand::Delete(args) => timetrack::delete_time_tracking(&config, &args),
             },
             Command::Config(config_command) => match config_command {

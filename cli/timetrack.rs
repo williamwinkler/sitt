@@ -110,12 +110,12 @@ pub fn add_time_tracking(config: &Config, args: &ProjectArgs) {
 
     let started_at = utils::prompt_user_for_datetime(
         &format!("Enter the {} date", "starting".color(Color::Yellow)),
-        None,
+        utils::PromptDateTimeArg::None,
     );
 
     let stopped_at = utils::prompt_user_for_datetime(
         &format!("Enter the {} date", "stopping".color(Color::Yellow),),
-        Some(started_at),
+        utils::PromptDateTimeArg::MinDate(started_at),
     );
 
     let duration = {
@@ -182,6 +182,62 @@ pub fn get_time_trackings(config: &Config, args: &ProjectArgs) {
     timetrack_list
         .iter()
         .for_each(|t| println!("{}", CliTimeTrack::from(t.clone())));
+}
+
+pub fn edit_time_track(config: &Config, args: &ProjectArgs) {
+    let name = resolve_project_name(
+        args.name.clone(),
+        config,
+        "update time on",
+        ProjectSelectOption::None,
+    );
+    let project_id_result = get_project_id_by_name(config, &name);
+    let project_id = print_and_exit_on_error(project_id_result);
+
+    let time_track = select_time_track(config, "update", &name, &project_id);
+
+    let started_at = utils::prompt_user_for_datetime(
+        &format!("Enter the {} date", "starting".color(Color::Yellow)),
+        utils::PromptDateTimeArg::PlaceholderDate(time_track.started_at),
+    );
+
+    let stopped_at = utils::prompt_user_for_datetime(
+        &format!("Enter the {} date", "stopping".color(Color::Yellow),),
+        utils::PromptDateTimeArg::MinDate(started_at),
+    );
+
+    let duration = {
+        let time_delta = stopped_at - started_at;
+        Duration::new(time_delta.num_seconds() as u64, 0)
+    };
+
+    let confirm_choice = Confirm::new(&format!(
+        "Are you sure, you want to update the logged time to {} on project {}?",
+        humantime::format_duration(duration)
+            .to_string()
+            .color(Color::Yellow),
+        name.color(Color::Cyan)
+    ))
+    .prompt()
+    .unwrap_or_else(|err| {
+        eprintln!("Error: {}", err);
+        exit(1);
+    });
+
+    if !confirm_choice {
+        exit(0)
+    }
+
+    let update_time_track = CreateTimeTrackDto {
+        project_id,
+        started_at,
+        stopped_at,
+    };
+
+    let api_response = sitt_client::update_time_track(config, &time_track.id, &update_time_track);
+    utils::print_and_exit_on_error(api_response);
+
+    println!("The time log was successfully updated! ✅")
 }
 
 pub fn delete_time_tracking(config: &Config, args: &ProjectArgs) {
