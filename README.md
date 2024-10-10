@@ -2,13 +2,17 @@
 SITT stands for **Si**mple **T**ime **T**racking. It's an application that allows users to track time on projects.<br>
 
 SITT consists of:
-  - [API](/api/) - which can be run on AWS Lambda
-  - [CLI](/cli/) - to interact with the API
+  - **API** - which can be run on AWS Lambda
+  - **CLI** - to interact with the API
 
 ## Deploy to AWS
 Currently the API is deployed manually to AWS, but compiling and zipping the code as follows:
 ```bash
-cargo build --release (find correct on air)
+cargo lambda build --release --arm64 --output-format zip
+```
+Alternatively build it locally
+```bash
+cargo build --release
 ```
 
 ## Prerequistes
