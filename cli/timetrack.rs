@@ -196,6 +196,11 @@ pub fn edit_time_track(config: &Config, args: &ProjectArgs) {
 
     let time_track = select_time_track(config, "update", &name, &project_id);
 
+    if time_track.status == TimeTrackStatus::InProgress {
+        println!("You can't edit a time log which is in progress. 🚫");
+        exit(0);
+    }
+
     let started_at = utils::prompt_user_for_datetime(
         &format!("Enter the {} date", "starting".color(Color::Yellow)),
         utils::PromptDateTimeArg::PlaceholderDate(time_track.started_at),
