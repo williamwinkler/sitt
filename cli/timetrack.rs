@@ -217,7 +217,7 @@ pub fn edit_time_track(config: &Config, args: &ProjectArgs) {
 
     let stopped_at = utils::prompt_user_for_datetime(
         &format!("Enter the {} date", "stopping".color(Color::Yellow),),
-        utils::PromptDateTimeArg::MinDate(stopped_at_datetime),
+        utils::PromptDateTimeArg::PlaceholderDate(stopped_at_datetime),
     );
 
     let duration = {
