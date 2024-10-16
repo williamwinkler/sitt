@@ -39,38 +39,38 @@ pub fn get_spinner(msg: String) -> ProgressBar {
     spinner
 }
 
-pub fn prompt_user_for_datetime(msg: &str, prompt_date: PromptDateTimeArg) -> DateTime<Utc> {
+pub fn prompt_user_for_datetime(
+    msg: &str,
+    min_date: Option<DateTime<Utc>>,
+    placeholder_date: Option<DateTime<Utc>>,
+) -> DateTime<Utc> {
     // Ask the user to select a date (in local time zone)
     let mut date = DateSelect::new(msg);
+    let mut initial_timestamp = String::from("12:00:00");
+    // Ask for time (HH:MM:SS) in local time zone
+    let mut time_input = Text::new("Enter the time (HH:MM:SS in 24-hour format):")
+        .with_help_message("Example: 14:30:15");
 
-    match prompt_date {
-        PromptDateTimeArg::MinDate(prompt_date) => {
-            let naive_min_date = get_local_naive_date_from_utc_datetime(prompt_date);
-            date = date.with_min_date(naive_min_date);
-            date = date.with_starting_date(naive_min_date);
-        }
-        PromptDateTimeArg::PlaceholderDate(prompt_date) => {
-            let placeholder_date = get_local_naive_date_from_utc_datetime(prompt_date);
-            date = date.with_starting_date(placeholder_date);
-        }
-        PromptDateTimeArg::None => {}
+    // Set min date and placeholder date and time if present
+    if let Some(min_date) = min_date {
+        let naive_min_date = get_local_naive_date_from_utc_datetime(min_date);
+        date = date.with_min_date(naive_min_date);
+
+        initial_timestamp = get_local_time_as_str(min_date);
     }
+    if let Some(placeholder_date) = placeholder_date {
+        let naive_placeholder_date = get_local_naive_date_from_utc_datetime(placeholder_date);
+        date = date.with_starting_date(naive_placeholder_date);
+
+        initial_timestamp = get_local_time_as_str(placeholder_date);
+    }
+
+    time_input = time_input.with_initial_value(&initial_timestamp);
 
     let date = date.prompt().unwrap_or_else(|err| {
         eprintln!("Error: {}", err);
         exit(1);
     });
-
-    // Ask for time (HH:MM:SS) in local time zone
-    let mut time_input = Text::new("Enter the time (HH:MM:SS in 24-hour format):")
-        .with_help_message("Example: 14:30:15");
-
-    let mut initial_value = String::from("12:00:00");
-
-    if let PromptDateTimeArg::MinDate(date) | PromptDateTimeArg::PlaceholderDate(date) = prompt_date {
-        initial_value = get_local_time_as_str(date);
-        time_input = time_input.with_initial_value(&initial_value);
-    }
 
     let time_input_str = time_input.prompt().unwrap_or_else(|err| {
         eprintln!("Error: {}", err);

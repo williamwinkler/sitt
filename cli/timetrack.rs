@@ -110,12 +110,14 @@ pub fn add_time_tracking(config: &Config, args: &ProjectArgs) {
 
     let started_at = utils::prompt_user_for_datetime(
         &format!("Enter the {} date", "starting".color(Color::Yellow)),
-        utils::PromptDateTimeArg::None,
+        None,
+        None,
     );
 
     let stopped_at = utils::prompt_user_for_datetime(
         &format!("Enter the {} date", "stopping".color(Color::Yellow),),
-        utils::PromptDateTimeArg::MinDate(started_at),
+        Some(started_at),
+        Some(started_at),
     );
 
     let duration = {
@@ -203,21 +205,21 @@ pub fn edit_time_track(config: &Config, args: &ProjectArgs) {
 
     let started_at = utils::prompt_user_for_datetime(
         &format!("Enter the {} date", "starting".color(Color::Yellow)),
-        utils::PromptDateTimeArg::PlaceholderDate(time_track.started_at),
+        None,
+        Some(time_track.started_at),
     );
 
-    // Choose the stopped_at datetime if present otherwise started at
-    let stopped_at_datetime = {
-        if let Some(stopped_at) = time_track.stopped_at {
-            stopped_at
-        } else {
-            time_track.started_at
-        }
+    // Determine the placeholder for the new stopped_at based on the relation to the previous stopped_at
+    let stopped_at_placeholder = match time_track.stopped_at {
+        Some(stopped_at) if started_at > stopped_at => started_at,
+        Some(stopped_at) => stopped_at,
+        None => started_at, // or a default value that makes sense in your context
     };
 
     let stopped_at = utils::prompt_user_for_datetime(
         &format!("Enter the {} date", "stopping".color(Color::Yellow),),
-        utils::PromptDateTimeArg::MinDate(started_at),
+        Some(started_at),
+        Some(stopped_at_placeholder),
     );
 
     let duration = {
