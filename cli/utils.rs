@@ -97,11 +97,10 @@ pub fn prompt_user_for_datetime(
 
 fn get_local_naive_date_from_utc_datetime(date: DateTime<Utc>) -> NaiveDate {
     let local_date = date.with_timezone(&Local);
-    let naive_date =
-        NaiveDate::from_ymd_opt(local_date.year(), local_date.month(), local_date.day())
-            .unwrap_or_default();
+    
 
-    naive_date
+    NaiveDate::from_ymd_opt(local_date.year(), local_date.month(), local_date.day())
+            .unwrap_or_default()
 }
 
 fn get_local_time_as_str(date: DateTime<Utc>) -> String {

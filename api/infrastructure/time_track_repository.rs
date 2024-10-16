@@ -421,6 +421,7 @@ impl TimeTrackRepository {
             let datetime = get_datetime_value(item, "stopped_at")?;
             stopped_at = Some(datetime)
         }
+
         let mut total_duration = Duration::new(0, 0);
         if item.get("total_duration").is_some() {
             let duration_as_str = get_string_value(item, "total_duration")?;

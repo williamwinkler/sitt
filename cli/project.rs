@@ -2,7 +2,7 @@ use crate::{
     config::Config,
     sitt_client,
     utils::{self, print_and_exit_on_error, DATETIME_FORMAT},
-    ProjectArgs,
+    NameArg,
 };
 use chrono::Local;
 use colored::{Color, Colorize};
@@ -38,11 +38,16 @@ struct ProjectCache {
     name: String,
 }
 
-pub fn create_project(config: &Config, args: ProjectArgs) {
+pub fn create_project(config: &Config, args: NameArg) {
     let name = if let Some(name) = args.name {
         name
     } else {
-        get_project_name_from_input()
+        let name = Text::new("Project name:").prompt().unwrap_or_else(|err| {
+            eprintln!("Error: {}", err);
+            exit(1);
+        });
+
+        name
     };
     let create_project_dto = CreateProjectDto { name };
 
@@ -53,7 +58,7 @@ pub fn create_project(config: &Config, args: ProjectArgs) {
     print_project(&project);
 }
 
-pub fn get_project_by_name(config: &Config, args: &ProjectArgs) {
+pub fn get_project_by_name(config: &Config, args: &NameArg) {
     let name = resolve_project_name(args.name.clone(), config, "get", ProjectSelectOption::None);
 
     let project_id_result = get_project_id_by_name(config, &name);
@@ -65,7 +70,7 @@ pub fn get_project_by_name(config: &Config, args: &ProjectArgs) {
     print_project(&project);
 }
 
-pub fn update_project(config: &Config, args: &ProjectArgs) {
+pub fn update_project(config: &Config, args: &NameArg) {
     let name = resolve_project_name(
         args.name.clone(),
         config,
@@ -103,7 +108,7 @@ pub fn update_project(config: &Config, args: &ProjectArgs) {
     print_project(&project);
 }
 
-pub fn delete_project(config: &Config, args: &ProjectArgs) {
+pub fn delete_project(config: &Config, args: &NameArg) {
     let name = resolve_project_name(
         args.name.clone(),
         config,
@@ -186,15 +191,6 @@ pub fn select_project(config: &Config, action: &str, select_option: ProjectSelec
     });
 
     project_name.to_string()
-}
-
-pub fn get_project_name_from_input() -> String {
-    let project_name = Text::new("Project name:").prompt().unwrap_or_else(|err| {
-        eprintln!("Error: {}", err);
-        exit(1);
-    });
-
-    project_name
 }
 
 fn print_project(project: &ProjectDto) {

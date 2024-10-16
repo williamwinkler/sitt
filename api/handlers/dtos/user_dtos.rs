@@ -46,7 +46,7 @@ impl<'r> FromData<'r> for CreateUserDto {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UserDto {
     pub id: String,
     pub name: String,

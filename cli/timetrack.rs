@@ -13,12 +13,12 @@ use crate::{
     project::{get_project_id_by_name, resolve_project_name, ProjectSelectOption},
     sitt_client,
     utils::{self, print_and_exit_on_error, DATETIME_FORMAT},
-    ProjectArgs,
+    NameArg,
 };
 
 use std::fmt;
 
-pub struct CliTimeTrack {
+struct CliTimeTrack {
     pub id: String,
     pub project_id: String,
     pub status: TimeTrackStatus,
@@ -42,11 +42,10 @@ impl fmt::Display for CliTimeTrack {
         } else {
             write!(
                 f,
-                "{} ->     {}     | {} ⏱️ ",
+                "{} ->     IN PROGRESS     | {} ⏱️ ",
                 self.started_at
                     .with_timezone(&Local)
                     .format(DATETIME_FORMAT),
-                "IN PROGRESS",
                 self.total_duration
             )
         }
@@ -66,7 +65,7 @@ impl From<TimeTrackDto> for CliTimeTrack {
     }
 }
 
-pub fn start_time_tracking(config: &Config, project_args: &ProjectArgs) {
+pub fn start_time_tracking(config: &Config, project_args: &NameArg) {
     let name = resolve_project_name(
         project_args.name.clone(),
         config,
@@ -82,7 +81,7 @@ pub fn start_time_tracking(config: &Config, project_args: &ProjectArgs) {
     print_time_track_full(&timetrack)
 }
 
-pub fn stop_time_tracking(config: &Config, project_args: &ProjectArgs) {
+pub fn stop_time_tracking(config: &Config, project_args: &NameArg) {
     let name = resolve_project_name(
         project_args.name.clone(),
         config,
@@ -98,7 +97,7 @@ pub fn stop_time_tracking(config: &Config, project_args: &ProjectArgs) {
     print_time_track_full(&timetrack)
 }
 
-pub fn add_time_tracking(config: &Config, args: &ProjectArgs) {
+pub fn add_time_tracking(config: &Config, args: &NameArg) {
     let name = resolve_project_name(
         args.name.clone(),
         config,
@@ -154,7 +153,7 @@ pub fn add_time_tracking(config: &Config, args: &ProjectArgs) {
     print_time_track_full(&timetrack)
 }
 
-pub fn get_time_trackings(config: &Config, args: &ProjectArgs) {
+pub fn get_time_trackings(config: &Config, args: &NameArg) {
     let name = resolve_project_name(
         args.name.clone(),
         config,
@@ -186,7 +185,7 @@ pub fn get_time_trackings(config: &Config, args: &ProjectArgs) {
         .for_each(|t| println!("{}", CliTimeTrack::from(t.clone())));
 }
 
-pub fn edit_time_track(config: &Config, args: &ProjectArgs) {
+pub fn edit_time_track(config: &Config, args: &NameArg) {
     let name = resolve_project_name(
         args.name.clone(),
         config,
@@ -256,7 +255,7 @@ pub fn edit_time_track(config: &Config, args: &ProjectArgs) {
     println!("The time log was successfully updated! ✅")
 }
 
-pub fn delete_time_tracking(config: &Config, args: &ProjectArgs) {
+pub fn delete_time_tracking(config: &Config, args: &NameArg) {
     let name = resolve_project_name(
         args.name.clone(),
         config,

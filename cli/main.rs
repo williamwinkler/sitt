@@ -7,6 +7,7 @@ mod config;
 mod project;
 mod sitt_client;
 mod timetrack;
+mod user;
 mod utils;
 
 #[derive(Parser)]
@@ -23,40 +24,54 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     #[command(about = "Start time tracking on a project")]
-    Start(ProjectArgs),
+    Start(NameArg),
     #[command(about = "Stop time tracking on a project")]
-    Stop(ProjectArgs),
+    Stop(NameArg),
     #[command(subcommand, about = "Manage your projects")]
     Project(ProjectCommand),
     #[command(subcommand, about = "Manage time on your projects")]
     Time(TimeTrackCommand),
     #[command(subcommand, about = "Manage your configuration")]
     Config(ConfigCommand),
+    #[command(subcommand, about = "[ADMIN ONLY] Manage users")]
+    User(UserCommand),
 }
 
 #[derive(Subcommand)]
 enum TimeTrackCommand {
     #[command(about = "Add time on a project")]
-    Add(ProjectArgs),
+    Add(NameArg),
     #[command(about = "Delete time logged on a project")]
-    Delete(ProjectArgs),
+    Delete(NameArg),
     #[command(about = "Edit a time log on a project")]
-    Edit(ProjectArgs),
+    Edit(NameArg),
     #[command(visible_alias = "ls", about = "List time logged on a project")]
-    List(ProjectArgs),
+    List(NameArg),
 }
 
 #[derive(Subcommand)]
 enum ProjectCommand {
     #[command(about = "Create a project")]
-    Create(ProjectArgs),
+    Create(NameArg),
     #[command(about = "Edit the name of a project")]
-    Edit(ProjectArgs),
+    Edit(NameArg),
     #[command(about = "Delete a project")]
-    Delete(ProjectArgs),
+    Delete(NameArg),
     #[command(about = "Get a project by name")]
-    Get(ProjectArgs),
-    #[command(visible_alias = "ls", about = "List a projects")]
+    Get(NameArg),
+    #[command(visible_alias = "ls", about = "List projects")]
+    List,
+}
+
+#[derive(Subcommand)]
+enum UserCommand {
+    #[command(about = "Create a user")]
+    Create,
+    #[command(about = "Get details about a user")]
+    Get,
+    #[command(about = "Delete a user")]
+    Delete,
+    #[command(visible_alias = "ls", about = "List users")]
     List,
 }
 
@@ -69,7 +84,7 @@ enum ConfigCommand {
 }
 
 #[derive(Args)]
-pub struct ProjectArgs {
+pub struct NameArg {
     #[arg(short, long, help = "Specify the name of the project")]
     name: Option<String>,
 }
@@ -113,6 +128,12 @@ impl Command {
                 TimeTrackCommand::List(args) => timetrack::get_time_trackings(&config, &args),
                 TimeTrackCommand::Edit(args) => timetrack::edit_time_track(&config, &args),
                 TimeTrackCommand::Delete(args) => timetrack::delete_time_tracking(&config, &args),
+            },
+            Command::User(user_command) => match user_command {
+                UserCommand::Create => user::create_user(&config),
+                UserCommand::Get => user::get_user(&config),
+                UserCommand::Delete => user::delete_user(&config),
+                UserCommand::List => user::get_users(&config),
             },
             Command::Config(config_command) => match config_command {
                 ConfigCommand::Set => {

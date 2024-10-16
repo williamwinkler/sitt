@@ -37,7 +37,7 @@ pub async fn create(
                     error_message: String::from("An internal error occurred"),
                 }),
             ))
-        },
+        }
     }
 }
 
@@ -104,8 +104,17 @@ pub async fn delete(
     admin: AdminValidation,
     user_id: UuidValidation,
 ) -> Result<status::NoContent, status::Custom<Json<ErrorResponse>>> {
-    let _ = &admin.0;
+    let admin = &admin.0;
     let user_id = &user_id.0.to_string();
+
+    if admin.id == *user_id {
+        return Err(status::Custom(
+            Status::BadRequest,
+            Json(ErrorResponse {
+                error_message: String::from("You can't delete yourself"),
+            }),
+        ));
+    }
 
     match user_service.delete(user_id).await {
         Ok(_) => Ok(status::NoContent),

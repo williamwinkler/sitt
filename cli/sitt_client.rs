@@ -8,6 +8,7 @@ use sitt_api::handlers::dtos::{
     common_dtos::ErrorResponse,
     project_dtos::{CreateProjectDto, ProjectDto},
     time_track_dtos::{CreateTimeTrackDto, TimeTrackDto},
+    user_dtos::{CreateUserDto, UserDto},
 };
 use std::time::Duration;
 use thiserror::Error;
@@ -127,6 +128,8 @@ impl ApiClient {
     }
 }
 
+// ##################################### PROJECT #####################################
+
 pub fn create_project(
     config: &Config,
     create_project_dto: &CreateProjectDto,
@@ -210,6 +213,8 @@ pub fn delete_project(config: &Config, project_id: &str) -> Result<(), ClientErr
     Ok(())
 }
 
+// ##################################### Time Tracking #####################################
+
 pub fn start_time_tracking(config: &Config, project_id: &str) -> Result<TimeTrackDto, ClientError> {
     let api = ApiClient::build(config)?;
     let path = &format!("{}/{}/start", TIME_TRACKS_PATH, project_id);
@@ -273,7 +278,7 @@ pub fn get_time_trackings(
 pub fn update_time_track(
     config: &Config,
     time_track_id: &str,
-    update_project_dto: &CreateTimeTrackDto
+    update_project_dto: &CreateTimeTrackDto,
 ) -> Result<TimeTrackDto, ClientError> {
     let api = ApiClient::build(config)?;
     let url = api.build_url(&format!("{}/{}", TIME_TRACKS_PATH, time_track_id));
@@ -287,11 +292,83 @@ pub fn update_time_track(
     Ok(timetrack)
 }
 
-pub fn delete_time_track(config: &Config, project_id: &str, time_track_id: &str) -> Result<(), ClientError> {
+pub fn delete_time_track(
+    config: &Config,
+    project_id: &str,
+    time_track_id: &str,
+) -> Result<(), ClientError> {
     let api = ApiClient::build(config)?;
-    let url = api.build_url(&format!("{}/{}/{}", TIME_TRACKS_PATH,  project_id, time_track_id));
+    let url = api.build_url(&format!(
+        "{}/{}/{}",
+        TIME_TRACKS_PATH, project_id, time_track_id
+    ));
 
     let spinner = get_spinner(String::from("Deleting..."));
+    let response = api.client.delete(url).send()?;
+    spinner.finish_and_clear();
+
+    api.handle_response::<()>(response)?;
+
+    Ok(())
+}
+
+// ##################################### USER #####################################
+
+pub fn create_user(
+    config: &Config,
+    create_user_dto: &CreateUserDto,
+) -> Result<UserDto, ClientError> {
+    let api = ApiClient::build(config)?;
+    let url = api.build_url(USERS_PATH);
+
+    let spinner = get_spinner(String::from("Creating user..."));
+    let response = api.client.post(url).json(create_user_dto).send()?;
+    spinner.finish_and_clear();
+
+    let user = api.handle_response::<UserDto>(response)?;
+
+    Ok(user)
+}
+
+pub fn get_user(
+    config: &Config,
+    user_id: &str,
+    include_api_key: bool,
+) -> Result<UserDto, ClientError> {
+    let api = ApiClient::build(config)?;
+    let mut url = api.build_url(&format!("{}/{}", USERS_PATH, user_id));
+
+    if include_api_key {
+        url.set_query(Some("include_api_key=true"));
+    }
+
+    let spinner = get_spinner(String::from("Fetching user..."));
+    let response = api.client.get(url).send()?;
+    spinner.finish_and_clear();
+
+    let user = api.handle_response::<UserDto>(response)?;
+
+    Ok(user)
+}
+
+pub fn get_users(config: &Config) -> Result<Vec<UserDto>, ClientError> {
+    let api = ApiClient::build(config)?;
+    let url = api.build_url(USERS_PATH);
+
+    let spinner = get_spinner(String::from("Fetching users..."));
+    let response = api.client.get(url).send()?;
+    spinner.finish_and_clear();
+
+    let user = api.handle_response::<Vec<UserDto>>(response)?;
+
+    Ok(user)
+}
+
+pub fn delete_user(config: &Config, user_id: &str) -> Result<(), ClientError> {
+    let api = ApiClient::build(config)?;
+    let url = api.build_url(&format!("{}/{}", USERS_PATH, user_id));
+
+    let spinner = get_spinner(String::from("Deleting user..."));
     let response = api.client.delete(url).send()?;
     spinner.finish_and_clear();
 
