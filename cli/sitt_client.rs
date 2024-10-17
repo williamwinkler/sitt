@@ -122,6 +122,11 @@ impl ApiClient {
                 let error_message = response
                     .text()
                     .unwrap_or_else(|_| "Unknown error".to_string());
+
+                if error_message.contains("403: Forbidden") {
+                    return Err(ClientError::Unauthorized);
+                }
+
                 Err(ClientError::RequestFailed(error_message))
             }
         }
