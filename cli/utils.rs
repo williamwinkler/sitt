@@ -8,13 +8,6 @@ use inquire::{DateSelect, Text};
 
 pub const DATETIME_FORMAT: &str = "%d/%m/%Y %H:%M:%S";
 
-#[derive(PartialEq)]
-pub enum PromptDateTimeArg {
-    MinDate(DateTime<Utc>),
-    PlaceholderDate(DateTime<Utc>),
-    None,
-}
-
 pub fn print_and_exit_on_error<T, E>(result: Result<T, E>) -> T
 where
     E: Display,
@@ -97,7 +90,7 @@ pub fn prompt_user_for_datetime(
 
 fn get_local_naive_date_from_utc_datetime(date: DateTime<Utc>) -> NaiveDate {
     let local_date = date.with_timezone(&Local);
-    
+
 
     NaiveDate::from_ymd_opt(local_date.year(), local_date.month(), local_date.day())
             .unwrap_or_default()
