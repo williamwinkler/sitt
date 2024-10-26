@@ -103,7 +103,7 @@ impl UserRepository {
         let user_repository = Self { db };
 
         // If the table was just created, add a default admin user
-        let admin_name = "DEFAULT ADMIN";
+        let admin_name = "admin";
 
         if result.is_ok() {
             let mut default_admin_user = User::new(admin_name, &UserRole::Admin, "SYSTEM");
@@ -116,13 +116,13 @@ impl UserRepository {
             loop {
                 if attempt >= max_retries {
                     eprintln!(
-                        "Failed to create DEFAULT ADMIN user after {} attempts. Exiting.",
+                        "Failed to create ADMIN user after {} attempts. Exiting.",
                         max_retries
                     );
                     std::process::exit(1);
                 }
                 println!(
-                    "Trying to create default admin user (attempt {})...",
+                    "Trying to create ADMIN user (attempt {})...",
                     attempt + 1
                 );
                 let result = user_repository.create(&default_admin_user).await;
@@ -133,7 +133,7 @@ impl UserRepository {
                     attempt += 1;
                 }
             }
-            println!("Created DEFAULT ADMIN user. Make sure to create your own ADMIN user and delete this one.");
+            println!("Created ADMIN user. Make sure to create your own ADMIN user and delete this one.");
         }
 
         Ok(user_repository)

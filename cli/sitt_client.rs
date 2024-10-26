@@ -133,6 +133,19 @@ impl ApiClient {
     }
 }
 
+pub fn validate_user_config(config: &Config) -> Result<(), ClientError> {
+    let api = ApiClient::build(config)?;
+    let url = api.build_url(PROJECTS_PATH);
+
+    let spinner = get_spinner(String::from("Authenticating user..."));
+    let response = api.client.get(url).send()?;
+    spinner.finish_and_clear();
+
+    api.handle_response::<Vec<ProjectDto>>(response)?;
+
+    Ok(())
+}
+
 // ##################################### PROJECT #####################################
 
 pub fn create_project(

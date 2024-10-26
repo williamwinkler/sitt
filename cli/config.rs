@@ -6,6 +6,8 @@ use std::{fs, io, process::exit};
 use thiserror::Error;
 use url::Url;
 
+use crate::sitt_client::{self, ClientError};
+
 const CONFIG_FILE: &str = "sitt.toml";
 
 #[derive(Error, Debug)]
@@ -84,6 +86,23 @@ impl Config {
             });
 
         let config = Config::new(api_key, sitt_url);
+        let result = sitt_client::validate_user_config(&config);
+        match result {
+            Ok(_) => {}
+            Err(ClientError::Unauthorized) => {
+                println!("The API key is not valid! 🚫 \nTry again");
+                exit(0)
+            }
+            Err(ClientError::ReqwestError(_)) | Err(ClientError::RequestFailed(_)) => {
+                println!("The URL is not valid! 🚫 \nTry again");
+                exit(0)
+            }
+            _ => {
+                println!("Something went wrong. Try again");
+                exit(0)
+            }
+        }
+
         let toml = toml::to_string(&config).unwrap_or_else(|err| {
             eprintln!("Error: {}", err);
             exit(1);

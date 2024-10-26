@@ -134,6 +134,9 @@ pub fn delete_project(config: &Config, args: &NameArg) {
 
     utils::print_and_exit_on_error(api_response);
 
+    // Recache projects
+    recache_projects(config);
+
     println!(
         "Project {} was successfully deleted! ✅",
         name.color(Color::Cyan)
@@ -294,6 +297,19 @@ pub fn get_project_id_by_name(config: &Config, name: &str) -> Result<String, Pro
         .ok_or_else(|| ProjectError::NoProjectWithName(name.to_string()));
 
     project_id
+}
+
+fn recache_projects(config: &Config) {
+    let cache_file_path = etcetera::choose_base_strategy()
+        .unwrap_or_else(|err| {
+            eprintln!("Error: {}", err);
+            exit(1);
+        })
+        .cache_dir()
+        .join(CACHE_FILE);
+
+    let cache_result = cache_projects(config, &cache_file_path);
+    print_and_exit_on_error(cache_result);
 }
 
 // Cachce projects with project_id & name

@@ -15,18 +15,18 @@ jobs:
     strategy:
       matrix:
         include:
-          # - os: ubuntu-latest
-          #   target: x86_64-unknown-linux-gnu
-          #   platform: linux
-          #   extension: ''
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            platform: linux
+            extension: ''
           - os: macos-latest
             target: x86_64-apple-darwin
             platform: macos
             extension: ''
-          # - os: windows-latest
-          #   target: x86_64-pc-windows-msvc
-          #   platform: windows
-          #   extension: '.exe'
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            platform: windows
+            extension: '.exe'
 
     steps:
       - name: Checkout Repository
