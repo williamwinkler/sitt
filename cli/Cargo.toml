@@ -1,0 +1,26 @@
+[package]
+name = "sitt"
+version = "0.1.0"
+edition = "2021"
+description = "CLI tool for interacting Simple Time Tracking API"
+authors = ["William Winkler"]
+
+[[bin]]
+name = "sitt"
+path = "main.rs"
+
+[dependencies]
+sitt-api = { workspace = true }
+chrono = { workspace = true }
+humantime = { workspace = true }
+thiserror = { workspace = true }
+serde.workspace = true
+serde_json.workspace = true
+indicatif = "0.17.8"
+colored = "2.1.0"
+inquire = { version = "0.7.5", features = ["date"] }
+etcetera = "0.8.0"
+clap = { version = "4.5.15", features = ["cargo", "derive"] }
+url = "2.5.2"
+toml = "0.8.19"
+reqwest = { version = "0.12.5", features = ["blocking", "json"] }

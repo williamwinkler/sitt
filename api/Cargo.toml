@@ -1,0 +1,32 @@
+[package]
+name = "sitt-api"
+version = "0.1.0"
+edition = "2021"
+description = "API for Simple Time Tracking application"
+authors = ["William Winkler"]
+
+[[bin]]
+name = "sitt-api"
+path = "main.rs"
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+async-trait = { workspace = true }
+chrono = { workspace = true, features = ["serde"] }
+dotenv = "0.15.0"
+humantime = { workspace = true }
+lambda-web = { version = "0.2.1", features = ["rocket05"] }
+rand = { workspace = true }
+rocket = { version = "0.5.0-rc.2", features = ["json"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { version = "1", features = ["full"] }
+uuid = { version = "1.9.1", features = ["v4"] }
+validator = { version = "0.18.1", features = ["derive"] }
+aws-config = { version = "1.5.3", features = ["behavior-version-latest"] }
+aws-sdk-dynamodb = { version = "1.36.0", features = [
+  "behavior-version-latest",
+] }
