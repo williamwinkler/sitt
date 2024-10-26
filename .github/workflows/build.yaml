@@ -1,0 +1,52 @@
+name: Build Binaries
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary_name: sitt-linux
+            extension: ''
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            binary_name: sitt-macos
+            extension: ''
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary_name: sitt-windows.exe
+            extension: '.exe'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          target: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }} --manifest-path cli/Cargo.toml
+
+      - name: Copy Binary to bin Directory
+        run: |
+          mkdir -p bin
+          cp target/${{ matrix.target }}/release/sitt${{ matrix.extension }} bin/${{ matrix.binary_name }}
+
+      - name: Upload Binaries as Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.binary_name }}
+          path: bin/${{ matrix.binary_name }}
