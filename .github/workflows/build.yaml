@@ -39,13 +39,12 @@ jobs:
 
       - name: Build CLI Binary
         run: |
-          cd cli
-          cargo build --release --target ${{ matrix.target }}
+          cargo build --release --target ${{ matrix.target }} --manifest-path cli/Cargo.toml
 
       - name: Copy Binary to bin Directory
         run: |
           mkdir -p bin
-          cp cli/target/${{ matrix.target }}/release/sitt${{ matrix.extension }} bin/${{ matrix.binary_name }}
+          cp target/${{ matrix.target }}/release/sitt${{ matrix.extension }} bin/${{ matrix.binary_name }}
 
       - name: Upload Binaries as Artifacts
         uses: actions/upload-artifact@v3
