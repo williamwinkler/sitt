@@ -91,8 +91,8 @@ Choose your platform and follow the instructions below:
 1. Download the sitt and allow it to be executed:
 
     ```bash
-    curl -L "https://github.com/williamwinkler/sitt/releases/latest/download/sitt-macos" -o ~/.local/bin/sitt
-    chmod +x ~/.local/bin/sitt
+    sudo curl -L "https://github.com/williamwinkler/sitt/releases/latest/download/sitt-macos" -o /usr/local/bin/sitt
+    sudo chmod +x /usr/local/bin/sitt
     ```
 
 2. Verify installation:
@@ -115,6 +115,7 @@ Choose your platform and follow the instructions below:
 1. Download the sitt and allow it to be executed:
 
     ```bash
+    mkdir -p ~/.local/bin || true
     curl -L "https://github.com/williamwinkler/sitt/releases/latest/download/sitt-linux" -o ~/.local/bin/sitt
     chmod +x ~/.local/bin/sitt
     export PATH="$HOME/.local/bin:$PATH"  # Ensure ~/.local/bin is in your PATH
@@ -126,21 +127,48 @@ Choose your platform and follow the instructions below:
     ```
 </details>
 
+
 <details>
 <summary>Windows</summary>
 <br>
 
-1. Using PowerShell, download `sitt`:
+1. Download `sitt`
+
+    Using PowerShell, download the `sitt` executable to your local `bin` folder:
     ```powershell
     Invoke-WebRequest -Uri "https://github.com/williamwinkler/sitt/releases/latest/download/sitt-windows.exe" -OutFile "$Env:USERPROFILE\bin\sitt.exe"
     ```
+
 2. Ensure `$Env:USERPROFILE\bin` is in your PATH
 
-3. Verify installation
+    To make sure `sitt` is accessible from any PowerShell session, add `$Env:USERPROFILE\bin` to your PATH environment variable.
+
+- **Temporarily** (for the current session only):
+  ```powershell
+  $env:Path += ";$Env:USERPROFILE\bin"
+  ```
+
+- **Permanently** (for all future sessions):
+  ```powershell
+  [Environment]::SetEnvironmentVariable("Path", "$env:Path;$Env:USERPROFILE\bin", [EnvironmentVariableTarget]::User)
+  ```
+
+    > **Note**: Adding it permanently ensures `sitt` is accessible from any terminal in the future.
+
+3. Verify Installation
+
+    After adding the path, verify that `sitt` is properly installed by running:
     ```powershell
     sitt --help
     ```
+
+    If you see the help information, the installation is successful!
+
+4. Restart PowerShell (if needed)
+
+    If the `sitt` command is not immediately recognized, close and reopen PowerShell or any terminal you are using to refresh the environment variables.
 </details>
+
 
 ### 3. Authenticate
 You will need the API URL and an API key to authenticate. Admin users can create other users using:
