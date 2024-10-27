@@ -136,6 +136,7 @@ Choose your platform and follow the instructions below:
 
     Using PowerShell, download the `sitt` executable to your local `bin` folder:
     ```powershell
+    Test-Path "$Env:USERPROFILE\bin" -or New-Item -ItemType Directory -Path "$Env:USERPROFILE\bin" > $null
     Invoke-WebRequest -Uri "https://github.com/williamwinkler/sitt/releases/latest/download/sitt-windows.exe" -OutFile "$Env:USERPROFILE\bin\sitt.exe"
     ```
 
