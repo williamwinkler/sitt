@@ -49,11 +49,12 @@ sitt stop -n my-project
 
 ## Get Started
 To set up SITT, follow these steps:
-1. **(Optional) Deploy the API.**
+1. **Deploy the API.**
 2. **Install the CLI**
 3. **Authenticate**
 
 ### 1. Deploy API
+> *If you will be using an already deployed API, skip this step.*
 
 The API can be deployed on AWS Lambda or run as a traditional server process. On startup, it will automatically create necessary DynamoDB tables and an initial admin user (named `admin` with API key `admin`).
 > **Important: Use the default `admin` user to create another ADMIN user and then delete the default `admin` account.**
