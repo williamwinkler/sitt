@@ -136,18 +136,13 @@ Choose your platform and follow the instructions below:
 
     Using PowerShell, download the `sitt` executable to your local `bin` folder:
     ```powershell
-    Test-Path "$Env:USERPROFILE\bin" -or New-Item -ItemType Directory -Path "$Env:USERPROFILE\bin" > $null
+    if (-not (Test-Path "$Env:USERPROFILE\bin")) { New-Item -ItemType Directory -Path "$Env:USERPROFILE\bin" | Out-Null }
     Invoke-WebRequest -Uri "https://github.com/williamwinkler/sitt/releases/latest/download/sitt-windows.exe" -OutFile "$Env:USERPROFILE\bin\sitt.exe"
     ```
 
 2. Ensure `$Env:USERPROFILE\bin` is in your PATH
 
     To make sure `sitt` is accessible from any PowerShell session, add `$Env:USERPROFILE\bin` to your PATH environment variable.
-
-- **Temporarily** (for the current session only):
-  ```powershell
-  $env:Path += ";$Env:USERPROFILE\bin"
-  ```
 
 - **Permanently** (for all future sessions):
   ```powershell
@@ -156,7 +151,11 @@ Choose your platform and follow the instructions below:
 
     > **Note**: Adding it permanently ensures `sitt` is accessible from any terminal in the future.
 
-3. Verify Installation
+3. Restart PowerShell (if needed)
+
+    If the `sitt` command is not immediately recognized, close and reopen PowerShell or any terminal you are using to refresh the environment variables.
+   
+4. Verify Installation
 
     After adding the path, verify that `sitt` is properly installed by running:
     ```powershell
@@ -164,10 +163,6 @@ Choose your platform and follow the instructions below:
     ```
 
     If you see the help information, the installation is successful!
-
-4. Restart PowerShell (if needed)
-
-    If the `sitt` command is not immediately recognized, close and reopen PowerShell or any terminal you are using to refresh the environment variables.
 </details>
 
 
