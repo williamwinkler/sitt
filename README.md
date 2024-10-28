@@ -167,10 +167,8 @@ Choose your platform and follow the instructions below:
 
 
 ### 3. Authenticate
-You will need the API URL and an API key to authenticate. Admin users can create other users using:
-```bash
-sitt user create
-```
+You will need the API URL and an API key to authenticate. 
+The API key is automatically generated when an admin creates a user.
 
 To authenticate:
 ```bash
