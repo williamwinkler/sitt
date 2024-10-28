@@ -65,12 +65,14 @@ The API can be deployed on AWS Lambda or run as a traditional server process. On
     ```bash
     cargo lambda build --release --arm64 --output-format zip
     ```
+    using the [lambda build tool](https://www.cargo-lambda.info/commands/build.html).
+    
     This creates a file `target/lambda/sitt-api/bootstrap.zip`.<br>
 
-2. In AWS:
+3. In AWS:
     - Create a Lambda Function and upload the zip file.
 
-    - Create a public URL, such as `https://<random>.lambda-url.<region>.on.aws`, for the Lambda Function. This URL will be used by the CLI.
+    - Create a public URL, such as `https://<random>.lambda-url.<region>.on.aws`, for the Lambda Function.
     This URL will be used by the CLI.
 
 #### Traditional deployment
