@@ -165,7 +165,7 @@ impl TimeTrackService {
 
         if !time_track_items.is_empty() {
             // Sort the items by started_at in descending order (newest first)
-            time_track_items.sort_by(|a, b| b.started_at.cmp(&a.started_at));
+            time_track_items.sort_by(|a, b| a.started_at.cmp(&b.started_at));
         }
 
         let active_time_track = time_track_items.iter_mut().find(|t| t.status == TimeTrackStatus::InProgress);
