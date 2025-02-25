@@ -195,6 +195,7 @@ pub async fn update(
     let project_id = update_time_track_dto.project_id;
     let new_started_at = update_time_track_dto.started_at;
     let new_stopped_at = update_time_track_dto.stopped_at;
+    let comment = update_time_track_dto.comment;
 
     match time_track_service
         .update(
@@ -203,6 +204,7 @@ pub async fn update(
             time_track_id,
             new_started_at,
             new_stopped_at,
+            comment,
         )
         .await
     {

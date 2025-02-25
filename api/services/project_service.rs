@@ -124,7 +124,6 @@ impl ProjectService {
 
             // Map projects, updating the total_duration for ACTIVE projects
             for project in &mut projects {
-                println!("project status: {}",  project.status);
                 if project.status == ProjectStatus::Active {
                     let time_track = time_track_service
                         .get_in_progress(user, &project.id, &project.name)

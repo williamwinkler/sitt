@@ -240,14 +240,27 @@ impl TimeTrackRepository {
 
     pub async fn update(&self, time_track: &TimeTrack) -> Result<(), DbError> {
         let mut item = HashMap::new();
+        let mut expression_attribute_names = HashMap::new(); // Add this for reserved keywords
 
-        // Create a list of updates that need to happen to the DynamoDB item
+        // Define update expressions
         let mut updates = vec![
-            "time_tracking_status = :time_tracking_status",
-            "started_at = :started_at",
-            "total_duration = :total_duration",
+            "#time_tracking_status = :time_tracking_status",
+            "#started_at = :started_at",
+            "#total_duration = :total_duration",
+            "#comment = :comment",
         ];
 
+        // Map attribute names to avoid reserved keywords
+        expression_attribute_names.insert(
+            "#time_tracking_status".to_string(),
+            "time_tracking_status".to_string(),
+        );
+        expression_attribute_names.insert("#started_at".to_string(), "started_at".to_string());
+        expression_attribute_names
+            .insert("#total_duration".to_string(), "total_duration".to_string());
+        expression_attribute_names.insert("#comment".to_string(), "comment".to_string()); // Fix for reserved keyword
+
+        // Insert attribute values
         item.insert(
             String::from(":time_tracking_status"),
             AttributeValue::S(time_track.status.to_string()),
@@ -262,12 +275,18 @@ impl TimeTrackRepository {
         );
 
         if let Some(stopped_at) = time_track.stopped_at {
-            updates.push("stopped_at = :stopped_at");
+            updates.push("#stopped_at = :stopped_at");
+            expression_attribute_names.insert("#stopped_at".to_string(), "stopped_at".to_string());
             item.insert(
                 String::from(":stopped_at"),
                 AttributeValue::S(stopped_at.to_string()),
             );
         }
+
+        item.insert(
+            String::from(":comment"),
+            AttributeValue::S(time_track.comment.clone().unwrap_or_else(|| "".to_string())),
+        );
 
         let update_expression = format!("SET {}", updates.join(", "));
 
@@ -282,6 +301,7 @@ impl TimeTrackRepository {
             .key("id", AttributeValue::S(time_track.id.to_string()))
             .update_expression(update_expression)
             .set_expression_attribute_values(Some(item))
+            .set_expression_attribute_names(Some(expression_attribute_names)) // Add expression attribute names
             .send()
             .await
             .map(|_| ())

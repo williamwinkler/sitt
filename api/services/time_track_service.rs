@@ -136,7 +136,7 @@ impl TimeTrackService {
         project_id: String,
         started_at: DateTime<Utc>,
         stopped_at: DateTime<Utc>,
-        comment: Option<String>
+        comment: Option<String>,
     ) -> Result<(TimeTrack, String), TimeTrackError> {
         let mut project = self.project_service.get(user, &project_id).await?;
 
@@ -170,11 +170,13 @@ impl TimeTrackService {
             time_track_items.sort_by(|a, b| a.started_at.cmp(&b.started_at));
         }
 
-        let active_time_track = time_track_items.iter_mut().find(|t| t.status == TimeTrackStatus::InProgress);
+        let active_time_track = time_track_items
+            .iter_mut()
+            .find(|t| t.status == TimeTrackStatus::InProgress);
         if let Some(time_track) = active_time_track {
             time_track.total_duration = {
                 let time_delta = Utc::now() - time_track.started_at;
-                Duration::new(time_delta.num_seconds() as u64, 0 )
+                Duration::new(time_delta.num_seconds() as u64, 0)
             }
         }
 
@@ -217,6 +219,7 @@ impl TimeTrackService {
         time_track_id: String,
         new_started_at: DateTime<Utc>,
         new_stopped_at: DateTime<Utc>,
+        comment: Option<String>,
     ) -> Result<(TimeTrack, String), TimeTrackError> {
         let mut project = self.project_service.get(user, &project_id).await?;
 
@@ -229,6 +232,7 @@ impl TimeTrackService {
         project.total_duration -= time_track.total_duration;
 
         // Update the time track properties
+        time_track.comment = comment;
         time_track.started_at = new_started_at;
         time_track.stopped_at = Some(new_stopped_at);
         time_track.total_duration = {
