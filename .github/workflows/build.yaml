@@ -49,7 +49,7 @@ jobs:
           cp target/${{ matrix.target }}/release/sitt${{ matrix.extension }} bin/sitt-${{ matrix.platform }}${{ matrix.extension }}
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: binaries
           path: bin/*
@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: binaries
           path: bin
