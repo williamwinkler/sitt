@@ -29,30 +29,46 @@ impl TimeTrackRepository {
             .attribute_name("project_id")
             .attribute_type(ScalarAttributeType::S)
             .build()
-            .unwrap_or_else(|_| panic!("Error building the attribute partion 'project_id' in the {} table",
-                TABLE_NAME));
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Error building the attribute partion 'project_id' in the {} table",
+                    TABLE_NAME
+                )
+            });
 
         let keyschema_part = KeySchemaElement::builder()
             .attribute_name("project_id")
             .key_type(KeyType::Hash)
             .build()
-            .unwrap_or_else(|_| panic!("Error building the key schema partion 'project_id' for table: {}",
-                TABLE_NAME));
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Error building the key schema partion 'project_id' for table: {}",
+                    TABLE_NAME
+                )
+            });
 
         // Sort key: id
         let attr_sort = AttributeDefinition::builder()
             .attribute_name("id")
             .attribute_type(ScalarAttributeType::S)
             .build()
-            .unwrap_or_else(|_| panic!("Error building the attribute partion 'id' in the {} table",
-                TABLE_NAME));
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Error building the attribute partion 'id' in the {} table",
+                    TABLE_NAME
+                )
+            });
 
         let keyschema_sort = KeySchemaElement::builder()
             .attribute_name("id")
             .key_type(KeyType::Range)
             .build()
-            .unwrap_or_else(|_| panic!("Error building the key schema partion 'id' for table: {}",
-                TABLE_NAME));
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Error building the key schema partion 'id' for table: {}",
+                    TABLE_NAME
+                )
+            });
 
         let result = db
             .client
@@ -377,6 +393,12 @@ impl TimeTrackRepository {
             "time_tracking_status".to_string(),
             AttributeValue::S(tt.status.to_string()),
         );
+        if let Some(comment) = &tt.comment {
+            item.insert(
+                "comment".to_string(),
+                AttributeValue::S(comment.to_string()),
+            );
+        }
         item.insert(
             "started_at".to_string(),
             AttributeValue::S(tt.started_at.to_string()),
@@ -413,6 +435,7 @@ impl TimeTrackRepository {
                 ))
             })?
         };
+        let comment = get_string_value(item, "comment").ok();
         let started_at = get_datetime_value(item, "started_at")?;
         let created_by = get_string_value(item, "created_by")?;
 
@@ -442,6 +465,7 @@ impl TimeTrackRepository {
             id,
             project_id,
             status,
+            comment,
             started_at,
             stopped_at,
             total_duration,

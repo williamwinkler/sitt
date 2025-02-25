@@ -1,7 +1,7 @@
 use super::{
     dtos::{
         common_dtos::ErrorResponse,
-        time_track_dtos::{CreateTimeTrackDto, TimeTrackDto},
+        time_track_dtos::{CreateTimeTrackDto, StartTimeTrackDto, TimeTrackDto},
     },
     validation::{user_validation::UserValidation, uuid_validation::UuidValidation},
 };
@@ -15,16 +15,21 @@ pub fn routes() -> Vec<Route> {
     routes![start, stop, create, get, update, delete]
 }
 
-#[post("/timetrack/<project_id>/start")]
+#[post(
+    "/timetrack/<project_id>/start",
+    format = "application/json",
+    data = "<start_time_track_dto>"
+)]
 pub async fn start(
     time_track_service: &State<Arc<TimeTrackService>>,
     user: UserValidation,
     project_id: UuidValidation,
+    start_time_track_dto: StartTimeTrackDto,
 ) -> Result<Json<TimeTrackDto>, status::Custom<Json<ErrorResponse>>> {
     let user = &user.0;
     let project_id = project_id.0.to_string();
 
-    match time_track_service.start(user, &project_id).await {
+    match time_track_service.start(user, &project_id, start_time_track_dto.comment).await {
         Ok(res) => Ok(Json(TimeTrackDto::from_time_track_with_project_name(
             res.0, res.1,
         ))),
@@ -107,9 +112,10 @@ pub async fn create(
     let project_id = create_time_track_dto.project_id;
     let started_at = create_time_track_dto.started_at;
     let stopped_at = create_time_track_dto.stopped_at;
+    let comment = create_time_track_dto.comment;
 
     match time_track_service
-        .create(user, project_id, started_at, stopped_at)
+        .create(user, project_id, started_at, stopped_at, comment)
         .await
     {
         Ok(res) => Ok(Json(TimeTrackDto::from_time_track_with_project_name(

@@ -49,6 +49,7 @@ pub struct TimeTrack {
     pub id: String, // Changed from String to Uuid for more efficient handling.
     pub project_id: String,
     pub status: TimeTrackStatus,
+    pub comment: Option<String>,
     pub started_at: DateTime<Utc>,
     pub stopped_at: Option<DateTime<Utc>>,
     pub total_duration: Duration,
@@ -56,11 +57,12 @@ pub struct TimeTrack {
 }
 
 impl TimeTrack {
-    pub fn new<S: Into<String>>(project_id: S, user: &User) -> Self {
+    pub fn new<S: Into<String>>(project_id: S, user: &User, comment: Option<String>) -> Self {
         TimeTrack {
             id: Uuid::new_v4().to_string(),
             project_id: project_id.into(),
             status: TimeTrackStatus::InProgress,
+            comment: comment,
             started_at: Utc::now(),
             stopped_at: None,
             total_duration: Duration::new(0, 0),
@@ -68,7 +70,6 @@ impl TimeTrack {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -118,7 +119,7 @@ mod tests {
     fn test_time_track_new() {
         let user = User::new("test", &UserRole::User, &Uuid::new_v4().to_string());
         let project_id = "proj_12345";
-        let time_track = TimeTrack::new(project_id, &user);
+        let time_track = TimeTrack::new(project_id, &user, None);
 
         assert_eq!(
             time_track.project_id,

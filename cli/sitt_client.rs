@@ -4,6 +4,7 @@ use reqwest::{
     blocking::Client,
     header::{HeaderMap, HeaderValue},
 };
+use serde_json::json;
 use sitt_api::handlers::dtos::{
     common_dtos::ErrorResponse,
     project_dtos::{CreateProjectDto, ProjectDto},
@@ -233,13 +234,28 @@ pub fn delete_project(config: &Config, project_id: &str) -> Result<(), ClientErr
 
 // ##################################### Time Tracking #####################################
 
-pub fn start_time_tracking(config: &Config, project_id: &str) -> Result<TimeTrackDto, ClientError> {
+pub fn start_time_tracking(
+    config: &Config,
+    project_id: &str,
+    comment: Option<String>,
+) -> Result<TimeTrackDto, ClientError> {
     let api = ApiClient::build(config)?;
     let path = &format!("{}/{}/start", TIME_TRACKS_PATH, project_id);
     let url = api.build_url(path);
 
+    let body = json!({
+        "comment": comment // If `comment` is `None`, it will be `null` in JSON
+    })
+    .to_string();
+
     let spinner = get_spinner(String::from("Starting time tracking on project..."));
-    let response = api.client.post(url).send()?;
+    let response = api
+        .client
+        .post(url)
+        .header("Content-Type", "application/json")
+        .body(body)
+        .send()?;
+
     spinner.finish_and_clear();
 
     let timetrack = api.handle_response::<TimeTrackDto>(response)?;

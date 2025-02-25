@@ -24,7 +24,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     #[command(about = "Start time tracking on a project")]
-    Start(NameArg),
+    Start(StartArgs),
     #[command(about = "Stop time tracking on a project")]
     Stop(NameArg),
     #[command(subcommand, about = "Manage your projects")]
@@ -87,6 +87,15 @@ enum ConfigCommand {
 pub struct NameArg {
     #[arg(short, long, help = "Specify the name of the project")]
     name: Option<String>,
+}
+
+#[derive(Args)]
+pub struct StartArgs {
+    #[arg(short, long, help = "Specify the name of the project")]
+    name: Option<String>,
+
+    #[arg(short, long, help = "Add a comment for the time being tracked")]
+    comment: Option<String>,
 }
 
 impl Command {

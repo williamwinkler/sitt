@@ -2,7 +2,7 @@ use std::{process::exit, time::Duration};
 
 use chrono::{DateTime, Local, Utc};
 use colored::{Color, Colorize};
-use inquire::{Confirm, Select};
+use inquire::{Confirm, Select, Text};
 use sitt_api::{
     handlers::dtos::time_track_dtos::{CreateTimeTrackDto, TimeTrackDto},
     models::time_track_model::TimeTrackStatus,
@@ -11,9 +11,9 @@ use sitt_api::{
 use crate::{
     config::Config,
     project::{get_project_id_by_name, resolve_project_name, ProjectSelectOption},
-    sitt_client,
+    sitt_client, timetrack,
     utils::{self, print_and_exit_on_error, DATETIME_FORMAT},
-    NameArg,
+    NameArg, StartArgs,
 };
 
 use std::fmt;
@@ -22,6 +22,7 @@ struct CliTimeTrack {
     pub id: String,
     pub project_id: String,
     pub status: TimeTrackStatus,
+    pub comment: Option<String>,
     pub started_at: DateTime<Utc>,
     pub stopped_at: Option<DateTime<Utc>>,
     pub total_duration: String,
@@ -29,24 +30,32 @@ struct CliTimeTrack {
 
 impl fmt::Display for CliTimeTrack {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let comment = if self.comment.is_none() {
+            "".to_string()
+        } else {
+            format!("- {}", self.comment.clone().unwrap().color(Color::Green))
+        };
+
         if let Some(stopped_at) = self.stopped_at {
             write!(
                 f,
-                "{} -> {} | {}",
+                "{} -> {} | {}  {}",
                 self.started_at
                     .with_timezone(&Local)
                     .format(DATETIME_FORMAT),
                 stopped_at.with_timezone(&Local).format(DATETIME_FORMAT),
-                self.total_duration
+                self.total_duration,
+                comment
             )
         } else {
             write!(
                 f,
-                "{} ->     IN PROGRESS     | {} ⏱️ ",
+                "{} ->     IN PROGRESS     | {} ⏱️  {}",
                 self.started_at
                     .with_timezone(&Local)
                     .format(DATETIME_FORMAT),
-                self.total_duration
+                self.total_duration,
+                comment
             )
         }
     }
@@ -58,6 +67,7 @@ impl From<TimeTrackDto> for CliTimeTrack {
             id: dto.time_track_id,
             project_id: dto.project_id,
             status: dto.status,
+            comment: dto.comment,
             started_at: dto.started_at,
             stopped_at: dto.stopped_at,
             total_duration: dto.total_duration,
@@ -65,9 +75,9 @@ impl From<TimeTrackDto> for CliTimeTrack {
     }
 }
 
-pub fn start_time_tracking(config: &Config, project_args: &NameArg) {
+pub fn start_time_tracking(config: &Config, args: &StartArgs) {
     let name = resolve_project_name(
-        project_args.name.clone(),
+        args.name.clone(),
         config,
         "start tracking on",
         ProjectSelectOption::InActive,
@@ -75,7 +85,13 @@ pub fn start_time_tracking(config: &Config, project_args: &NameArg) {
     let project_id_result = get_project_id_by_name(config, &name);
     let project_id = print_and_exit_on_error(project_id_result);
 
-    let api_response = sitt_client::start_time_tracking(config, &project_id);
+    let mut comment = args.comment.clone(); // Clone the Option<String> from args
+
+    if comment.is_none() {
+        comment = ask_for_comment(None);
+    }
+
+    let api_response = sitt_client::start_time_tracking(config, &project_id, comment);
     let timetrack = utils::print_and_exit_on_error(api_response);
 
     print_time_track_full(&timetrack)
@@ -119,6 +135,8 @@ pub fn add_time_tracking(config: &Config, args: &NameArg) {
         Some(started_at),
     );
 
+    let comment = ask_for_comment(None);
+
     let duration = {
         let time_delta = stopped_at - started_at;
         Duration::new(time_delta.num_seconds() as u64, 0)
@@ -145,6 +163,7 @@ pub fn add_time_tracking(config: &Config, args: &NameArg) {
         project_id,
         started_at,
         stopped_at,
+        comment,
     };
 
     let api_response = sitt_client::add_time_tracking(config, &create_time_track);
@@ -226,6 +245,8 @@ pub fn edit_time_track(config: &Config, args: &NameArg) {
         Duration::new(time_delta.num_seconds() as u64, 0)
     };
 
+    let comment = ask_for_comment(time_track.comment);
+
     let confirm_choice = Confirm::new(&format!(
         "Are you sure, you want to edit the logged time to {} on project {}?",
         humantime::format_duration(duration)
@@ -247,6 +268,7 @@ pub fn edit_time_track(config: &Config, args: &NameArg) {
         project_id,
         started_at,
         stopped_at,
+        comment,
     };
 
     let api_response = sitt_client::update_time_track(config, &time_track.id, &update_time_track);
@@ -321,6 +343,23 @@ fn select_time_track(
     chosen_time_track
 }
 
+fn ask_for_comment(initial_value: Option<String>) -> Option<String> {
+    let comment = Text::new("📝 Add comment:")
+        .with_help_message("If no comment, leave blank and press Enter")
+        .with_initial_value(&initial_value.unwrap_or_else(|| "".to_string()))
+        .prompt()
+        .unwrap_or_else(|err| {
+            eprintln!("Error: {}", err);
+            exit(1);
+        });
+
+    if comment.is_empty() {
+        None
+    } else {
+        Some(comment)
+    }
+}
+
 fn print_time_track_full(timetrack: &TimeTrackDto) {
     let status_with_color = {
         let mut status_with_color = timetrack.status.to_string().color(Color::Yellow);
@@ -334,9 +373,15 @@ fn print_time_track_full(timetrack: &TimeTrackDto) {
         r#"
 PROJECT:      {}
 STATUS:       {}
+COMMENT:      {}
 STARTED AT:   {}"#,
         timetrack.project_name.color(Color::Cyan),
         status_with_color,
+        timetrack
+            .comment
+            .clone()
+            .unwrap_or("".to_string())
+            .color(Color::Green),
         timetrack
             .started_at
             .with_timezone(&Local)

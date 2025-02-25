@@ -65,6 +65,7 @@ impl TimeTrackService {
         &self,
         user: &User,
         project_id: &str,
+        comment: Option<String>,
     ) -> Result<(TimeTrack, String), TimeTrackError> {
         let mut project = self.project_service.get(user, project_id).await?;
 
@@ -78,7 +79,7 @@ impl TimeTrackService {
         project.status = ProjectStatus::Active;
         self.project_service.update(user, &mut project).await?;
 
-        let time_track = TimeTrack::new(project_id, user);
+        let time_track = TimeTrack::new(project_id, user, comment);
         self.repository.create(&time_track).await?;
 
         Ok((time_track, project.name))
@@ -135,10 +136,11 @@ impl TimeTrackService {
         project_id: String,
         started_at: DateTime<Utc>,
         stopped_at: DateTime<Utc>,
+        comment: Option<String>
     ) -> Result<(TimeTrack, String), TimeTrackError> {
         let mut project = self.project_service.get(user, &project_id).await?;
 
-        let mut time_track = TimeTrack::new(&project_id, user);
+        let mut time_track = TimeTrack::new(&project_id, user, comment);
         time_track.started_at = started_at;
         time_track.stopped_at = Some(stopped_at);
         time_track.status = TimeTrackStatus::Finished;
